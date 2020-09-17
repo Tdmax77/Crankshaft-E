@@ -1,3 +1,4 @@
+//prova nuovo brech 20200709
 /*
   Encoder: legge i dati dall'encoder e li trasmette grezzi (numero di step) al ricevitore il quale
   li convertirà in angolo da visualizzare sul display.

@@ -193,21 +193,14 @@ void loop()
     delay(5);
   }
 
-if (Data.offsetRequest == true) var = 0;
-  while (Data.offsetRequest == true )
-  //if (Data.offsetRequest == true )
+if (Data.offsetRequest == true)
   {
-    var = 0;
     offset(); // scrive richiesta offset
     while (digitalRead(buttonOkPin) == LOW)
     {
       OFFSET();
+      Ack.isRestarted = false;
     }
-    //Ack.isRestarted = false;  // dopo aver impostato
-    //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));  
-    //Data.offsetRequest = false; //provo a mettere in OFFSET()
-    //display_angolo();
-    //delay(200);
   }
   Data.offsetRequest =false;
   Ack.isRestarted = false;  // dopo aver impostato

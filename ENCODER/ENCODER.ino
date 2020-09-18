@@ -1,4 +1,3 @@
-//prova nuovo brech 20200709
 /*
   Encoder: legge i dati dall'encoder e li trasmette grezzi (numero di step) al ricevitore il quale
   li convertirà in angolo da visualizzare sul display.
@@ -85,6 +84,7 @@ void setup() {
   Serial.begin (115200);
   printf_begin();
   radio.printDetails();
+  delay(200);
 #endif
 
 #ifndef DEBUG
@@ -112,7 +112,9 @@ void setup() {
 
 
 void loop() {
-
+#ifdef DEBUG
+    delay(500);
+#endif
 
   Data.encoderValueTX = encoderValue;
   Angolo = (encoderValue * risoluzioneEncoder) + AngoloLetto;
@@ -144,19 +146,13 @@ void loop() {
   }
   /* ****************************************************** CONTROLLO RICEZIONE DATI ************************************/
 
-/* if (Ack.isRestarted == false && Data.offsetRequest == true)   // se Display azzera il contatore dopo aver inserito l'offest, azzero anche il dato
+ if (Ack.isRestarted == false && Data.offsetRequest == true)   // se Display azzera il contatore dopo aver inserito l'offest, azzero anche il dato
   { 
      Data.offsetRequest = false;
     radio.write(&Data, sizeof(struct EncoderData));
     //mandare dato con stato
    
   }
-*/
-
-if (Ack.isRestarted == false){
-  Data.offsetRequest = false;
-  radio.write(&Data, sizeof(struct EncoderData));
-  };
 }
 
 

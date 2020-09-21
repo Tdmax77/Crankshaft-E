@@ -1,4 +1,8 @@
-/*
+/*  20200921 spostato calcolo offset su encoder ma ci sono provlemi:
+ *   il valore di offset viene risommato la prima volta che spengo e riaccendo il display
+ *   offset viene chiesto 3 volte.
+ *   
+ *   
   Ricevitore per Encoder: riceve un segnale grezzo dall'encoder (numero di step) e lo converte in un angolo
   da visualizzare sul display .
 
@@ -46,13 +50,15 @@ volatile long encoderValue;
 //questa struttura manda i dati dall'encoder al display
 struct EncoderData {
   bool offsetRequest = true; //se prima accensione richiederà l'offset
-  long encoderValueTX = encoderValue;
+  //long encoderValueTX; // = encoderValue;
+  float valoreangolocorretto;
 };
 EncoderData Data;
 
 //questa struttura definisce l'ack payload
 struct AckPayload {
-  int AngoloLetto; //valore letto sul volano
+  //int AngoloLetto; //valore letto sul volano
+  int ValOffset; //valore letto sul volano
   bool isRestarted = true; // se display rileva chisura encoder ridomanda offset
 };
 
@@ -129,6 +135,7 @@ void setup() {
   Serial.begin(115200);
   printf_begin();
   radio.printDetails();
+  delay(2000);
 #endif
 
 #ifndef DEBUG
@@ -153,7 +160,7 @@ void setup() {
 void loop()
 {
 
-  Ack.AngoloLetto = var * 20;                                             // imposto il valore AngoloLetto da spedire moltiplicando l'angolo inserito in offset * gli step per grado 7200/20
+  Ack.ValOffset = var; //* 20;                                             // imposto il valore ValOffset in gradi da spedire //moltiplicando l'angolo inserito in offset * gli step per grado 7200/20
 
   if (radio.available())
   {
@@ -164,28 +171,11 @@ void loop()
 
 
   /* messaggistica di controllo ************************************************************/
-  if (millis() - previousSuccessfulTransmission > 500)                   // se non ricevo niente entro tot millisecondi
-  {
-    transmissionState = false;
-#ifdef DEBUG
-    Serial.println("Data transmission error, check Transmitter!");
-#endif
-    display_no_conn();
-    delay(400);
-  }
-  else
-  {
-    transmissionState = true;   // se ricevo conrrettamente il segnale
-    //display_angolo();
-#ifdef DEBUG
-    debug1();
-#endif
-  }
-
+  check_Transmission();
   /* messaggistica di controllo ************************************************************/
 
-  encoderValue = Data.encoderValueTX;
-  Angolo = (encoderValue * risoluzioneEncoder) + var;
+  encoderValue = Data.valoreangolocorretto;
+  //Angolo = (encoderValue * risoluzioneEncoder) + ( var * 20 );
   if (encoderValue != encoderValuePrev )       
   {
     encoderValuePrev = encoderValue;
@@ -215,7 +205,7 @@ if (transmissionState == true && PretransmissionState == false) {   //aggiunto p
    lcd.setCursor(4, 0);
    lcd.print("Angolo:");
    lcd.setCursor(1, 1);
-   lcd.print(Angolo);
+   lcd.print(Data.valoreangolocorretto);
    lcd.setCursor(10, 1);
    lcd.print("Gradi");
    delay(200);
@@ -240,15 +230,27 @@ if (transmissionState == true && PretransmissionState == false) {   //aggiunto p
 /*****************************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************************/
 
-
-
-
-
-
-
-
-
-
+  /* messaggistica di controllo ************************************************************/
+void check_Transmission(){
+  if (millis() - previousSuccessfulTransmission > 3500)                   // se non ricevo niente entro tot millisecondi
+  {
+    transmissionState = false;
+#ifdef DEBUG
+    Serial.println("Data transmission error, check Transmitter!");
+#endif
+    display_no_conn();
+    delay(400);
+  }
+  else
+  {
+    transmissionState = true;   // se ricevo conrrettamente il segnale
+    //display_angolo();
+#ifdef DEBUG
+    debug1();
+#endif
+  }
+}
+  /* messaggistica di controllo ************************************************************/
 
 
 
@@ -359,15 +361,15 @@ void debug1() {
 
   Serial.println("Data successfully received");
   Serial.println("DATI RICEVUTI");
-  Serial.print("Data.encoderValueTX     ");
-  Serial.println(Data.encoderValueTX);
+  Serial.print("Data.valoreangolocorretto    ");
+  Serial.println(Data.valoreangolocorretto);
   Serial.print("Data.offsetRequest      ");
   Serial.println(Data.offsetRequest);
   Serial.println("");
   Serial.println("");
   Serial.println("DATI INVIATI ");
-  Serial.print("Ack.AngoloLetto     ");
-  Serial.println(Ack.AngoloLetto);
+  Serial.print("Ack.ValOffset     ");
+  Serial.println(Ack.ValOffset);
   Serial.print("Ack.isRestarted     ");
   Serial.println(Ack.isRestarted);
   Serial.println("");
@@ -399,7 +401,7 @@ void display_angolo() {
   lcd.setCursor(4, 0);
   lcd.print("Angolo:");
   lcd.setCursor(1, 1);
-  lcd.print(Angolo);
+  lcd.print(Data.valoreangolocorretto);
   lcd.setCursor(10, 1);
   lcd.print("Gradi");
 }

@@ -1,6 +1,11 @@
-/*
-  Encoder: legge i dati dall'encoder e li trasmette grezzi (numero di step) al ricevitore il quale
-  li convertirà in angolo da visualizzare sul display.
+/*20200921 spostato calcolo offset su encoder ma ci sono provlemi:
+ *   il valore di offset viene risommato la prima volta che spengo e riaccendo il display
+ *   offset viene chiesto 3 volte.
+ *   
+ * 
+  Encoder: domanda un offset alla prima accensione
+  lo riceve nell ack e lo somma al valore letto dall'encoder
+  poi lo rispedisce al display per farlo visualizzare
   modulo nrf24
   CE   9
   SCN  10
@@ -39,7 +44,8 @@ int lastLSB = 0;
 RF24 radio(9, 10);               // nRF24L01 (CE,CSN)
 const uint64_t add1 = 0xf0f0f0f0e1LL;
 char msg[20];
-int AngoloLetto;
+//int AngoloLetto;
+int ValOffset;
 boolean transmissionState;
 static unsigned long previousSuccessfulTransmission;
 
@@ -47,13 +53,15 @@ static unsigned long previousSuccessfulTransmission;
 //questa struttura manda i dati dall'encoder al display
 struct EncoderData {
   bool offsetRequest = true; //se prima accensione richiederà l'offset
-  long encoderValueTX = encoderValue;
+  //long encoderValueTX; //= encoderValue;
+  float valoreangolocorretto;
 };
 EncoderData Data;
 
 //questa struttura definisce l'ack payload
 struct AckPayload {
-  int AngoloLetto; //valore letto sul volano
+  //int AngoloLetto; //valore letto sul volano
+  int ValOffset;
   bool isRestarted = true; // se display rileva chisura encoder ridomanda offset
 };
 AckPayload Ack;
@@ -113,18 +121,20 @@ void setup() {
 
 void loop() {
 #ifdef DEBUG
-    delay(500);
+    delay(1000);
+    debug3();
+   
 #endif
 
-  Data.encoderValueTX = encoderValue;
-  Angolo = (encoderValue * risoluzioneEncoder) + AngoloLetto;
+  //Data.encoderValueTX = encoderValue;
+  Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ; //AngoloLetto;
   if (radio.write(&Data, sizeof(struct EncoderData)))                     // se radio attiva trasmetto
   {
-    debug1();
+    //debug1();
     if (radio.isAckPayloadAvailable())                                    // leggo ack
     {
       radio.read(&Ack, sizeof(struct AckPayload));
-      debug2();
+     // debug2();
       previousSuccessfulTransmission = millis();
     }
   }
@@ -183,8 +193,10 @@ void updateEncoder() {
 void debug1() {
 #ifdef DEBUG
   Serial.println("DATI TRASMESSI");
-  Serial.print("Data.encoderValueTX     ");
-  Serial.println(Data.encoderValueTX);
+  Serial.print("Data.valoreangolocorretto     ");
+  Serial.println(Data.valoreangolocorretto);
+  Serial.print("encoderValue    ");
+  Serial.println(encoderValue);
   Serial.print("Data.offsetRequest      ");
   Serial.println(Data.offsetRequest);
   Serial.println("");
@@ -197,10 +209,34 @@ void debug2() {
 #ifdef DEBUG
   Serial.println("DATI RICEVUTI");
   Serial.print("Ack.AngoloLetto    ");
-  Serial.println(Ack.AngoloLetto);
+  Serial.println(Ack.ValOffset);
   Serial.print("Ack.isRestarted        ");
   Serial.println(Ack.isRestarted);
   Serial.println("");
   Serial.println("");
+#endif
+}
+
+void debug3() {
+#ifdef DEBUG
+  Serial.println("DATI TRASMESSI");
+  Serial.print("Data.valoreangolocorretto     ");
+  Serial.println(Data.valoreangolocorretto);
+   Serial.print("risoluzioneEmcoder     ");
+  Serial.println(risoluzioneEncoder);
+  Serial.print("encoderValue    ");
+  Serial.println(encoderValue);
+  Serial.print("Ack.ValOffset      ");
+  Serial.println(Ack.ValOffset);
+  Serial.print("Data.offsetRequest      ");
+  Serial.println(Data.offsetRequest);
+  Serial.println("DATI RICEVUTI");
+  Serial.print("Ack.isRestarted        ");
+  Serial.println(Ack.isRestarted);
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+
 #endif
 }

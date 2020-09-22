@@ -45,7 +45,7 @@ RF24 radio(9, 10);               // nRF24L01 (CE,CSN)
 const uint64_t add1 = 0xf0f0f0f0e1LL;
 char msg[20];
 //int AngoloLetto;
-int ValOffset;
+int ValOffset ;
 boolean transmissionState;
 static unsigned long previousSuccessfulTransmission;
 
@@ -53,19 +53,20 @@ static unsigned long previousSuccessfulTransmission;
 //questa struttura manda i dati dall'encoder al display
 struct EncoderData {
   bool offsetRequest = true; //se prima accensione richiederà l'offset
-  //long encoderValueTX; //= encoderValue;
   float valoreangolocorretto;
 };
 EncoderData Data;
 
 //questa struttura definisce l'ack payload
 struct AckPayload {
-  //int AngoloLetto; //valore letto sul volano
   int ValOffset;
-  bool isRestarted = true; // se display rileva chisura encoder ridomanda offset
+  bool offset_impostato = false; // se display rileva chisura encoder ridomanda offset
 };
 AckPayload Ack;
 
+
+
+bool IMPOSTATO_DA_DISPLAY = false;
 /*Variabili network */
 
 
@@ -121,7 +122,7 @@ void setup() {
 
 void loop() {
 #ifdef DEBUG
-    delay(1000);
+    //delay(1000);
     debug3();
    
 #endif
@@ -130,17 +131,15 @@ void loop() {
   Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ; //AngoloLetto;
   if (radio.write(&Data, sizeof(struct EncoderData)))                     // se radio attiva trasmetto
   {
-    //debug1();
     if (radio.isAckPayloadAvailable())                                    // leggo ack
     {
       radio.read(&Ack, sizeof(struct AckPayload));
-     // debug2();
       previousSuccessfulTransmission = millis();
     }
   }
 
   /* ****************************************************** CONTROLLO RICEZIONE DATI ************************************/
-  if (millis() - previousSuccessfulTransmission > 1500)                  //se maggiore di tot non ricevuto ack
+  if (millis() - previousSuccessfulTransmission > 500)                  //se maggiore di tot non ricevuto ack
   {
     transmissionState = false;
 #ifdef DEBUG
@@ -156,14 +155,73 @@ void loop() {
   }
   /* ****************************************************** CONTROLLO RICEZIONE DATI ************************************/
 
- if (Ack.isRestarted == false && Data.offsetRequest == true)   // se Display azzera il contatore dopo aver inserito l'offest, azzero anche il dato
+ if (Ack.offset_impostato == true)   // se Display azzera il contatore dopo aver inserito l'offest, azzero anche il dato
   { 
-     Data.offsetRequest = false;
+    Data.offsetRequest = false;
     radio.write(&Data, sizeof(struct EncoderData));
     //mandare dato con stato
    
   }
+
+  if (Ack.offset_impostato == true ) IMPOSTATO_DA_DISPLAY == true;
+  Serial.print ("IMPOSTATO DA DISPLAY   ");
+  Serial.print (IMPOSTATO_DA_DISPLAY);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -210,8 +268,8 @@ void debug2() {
   Serial.println("DATI RICEVUTI");
   Serial.print("Ack.AngoloLetto    ");
   Serial.println(Ack.ValOffset);
-  Serial.print("Ack.isRestarted        ");
-  Serial.println(Ack.isRestarted);
+  Serial.print("Ack.offset_impostato        ");
+  Serial.println(Ack.offset_impostato );
   Serial.println("");
   Serial.println("");
 #endif
@@ -231,8 +289,8 @@ void debug3() {
   Serial.print("Data.offsetRequest      ");
   Serial.println(Data.offsetRequest);
   Serial.println("DATI RICEVUTI");
-  Serial.print("Ack.isRestarted        ");
-  Serial.println(Ack.isRestarted);
+  Serial.print("Ack.offset_impostato        ");
+  Serial.println(Ack.offset_impostato );
   Serial.println("");
   Serial.println("");
   Serial.println("");

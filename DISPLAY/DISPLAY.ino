@@ -1,4 +1,5 @@
-/*  20200921 spostato calcolo offset su encoder ma ci sono provlemi:
+/*  22092020 5:25
+ *   20200921 spostato calcolo offset su encoder ma ci sono provlemi:
      il valore di offset viene risommato la prima volta che spengo e riaccendo il display
      offset viene chiesto 3 volte.
 

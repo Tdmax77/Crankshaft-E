@@ -214,78 +214,54 @@ void setup() {
 void loop()
 {
 
-/*
-if (Serial.available() > 0) {
-    char state = Serial.read();
-    if (state == 'H' || state == 'h') {
-            Ack.offset_impostato =true;
-            Serial.println("Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;");
-    }
-    if (state == 'L' || state == 'l') {
-            Ack.offset_impostato = false;
-            Serial.println("Ack.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =false");
-    }
-    if (state == 'Z' || state == 'z') {
-            Data.offsetRequest =true;
-            Serial.println("Data.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =true");
-    }
-    if (state == 'X' || state == 'x') {
-            Data.offsetRequest = false;
-            Serial.println("Data.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = false");
-    }
-  }*/
 
- 
-  
-  delay(50);
-  //debug();
-  /* messaggistica di controllo ************************************************************/
-  //check_Transmission();
-  /* messaggistica di controllo ************************************************************/
-
-  if (radio.available())
+  /*if*/while (radio.available())
   {
     radio.read(&Data, sizeof(struct EncoderData));
-    
-        Serial.println ("leggo dati radio");
-        Serial.print("Data.offsetRequest      ");
-        Serial.println(Data.offsetRequest);
-        Serial.print("Data.valoreangolocorretto    ");
-        Serial.println(Data.valoreangolocorretto);
+
+    Serial.println ("leggo dati radio");
+    Serial.print("Data.offsetRequest      ");
+    Serial.println(Data.offsetRequest);
+    Serial.print("Data.valoreangolocorretto    ");
+    Serial.println(Data.valoreangolocorretto);
     radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));            // mando il valore di offset come ack !!!
-        Serial.println ("scrivo dati radio");
-        Serial.print("Ack.ValOffset     ");
-        Serial.println(Ack.ValOffset);
-        Serial.print("Valore impostato Ack.offset_impostato    ");
-        Serial.println(Ack.offset_impostato);
+    Serial.println ("scrivo dati radio");
+    Serial.print("Ack.ValOffset     ");
+    Serial.println(Ack.ValOffset);
+    Serial.print("Valore impostato Ack.offset_impostato    ");
+    Serial.println(Ack.offset_impostato);
 
     previousSuccessfulTransmission = millis();
   }
-
-
-  if (Data.offsetRequest == true && Ack.offset_impostato == false)
-  {
-    testo_richiesta_inserimento_offset();
-    while (digitalRead(buttonOkPin) == LOW )
-    {
-      //PROCEDURA_OFFSET();
-      //Ack.ValOffset = var;
-      //Ack.offset_impostato = true;
-    }
-    Serial.println("procedura offset finita  ");
-    Ack.offset_impostato = true;
-    Data.offsetRequest = false;
-    Ack.ValOffset = var;
-    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-    Serial.println("ho impostato ack.offset_impostato a true");
-    Ack.offset_impostato = false;
-    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-  }
   display_angolo();
-  
+  if (Serial.available() > 0) {
+    char state = Serial.read();
+    if (state == 'H' || state == 'h') {
+      Ack.offset_impostato = true;
+      Serial.println("Ack.offset_impostato =true %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
+    }
+    if (state == 'L' || state == 'l') {
+      Ack.offset_impostato = false;
+      Serial.println("Ack.offsetRequest =false %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
+    }
+    if (state == 'Z' || state == 'z') {
+      Data.offsetRequest = true;
+      Serial.println("Data.offsetRequest =true %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
+    }
+    if (state == 'X' || state == 'x') {
+      Data.offsetRequest = false;
+      Serial.println("Data.offsetRequest = false %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+    }
+
+  }
+
+  if (Data.offsetRequest == true) {
+    Serial.println ("RICHIESTA OFFSET"); 
+    testo_richiesta_inserimento_offset();
+  }
+
+
 }
-
-
 
 
 
@@ -411,9 +387,9 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
     repeatEnable = LOW;
     Serial.println ("cambio la variabile offset impostato a 1");
     //Ack.offset_impostato = true;
-  // Ack.ValOffset = var;
-   // radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-    
+    // Ack.ValOffset = var;
+    // radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+
   }
 
 #ifdef DEBUG

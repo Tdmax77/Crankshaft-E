@@ -1,5 +1,4 @@
-/*  20200924 8:56
- *   22092020 5:25
+/*  22092020 5:25
      20200921 spostato calcolo offset su encoder ma ci sono provlemi:
      il valore di offset viene risommato la prima volta che spengo e riaccendo il display
      offset viene chiesto 3 volte.
@@ -238,7 +237,7 @@ if (Serial.available() > 0) {
   }*/
 
  
-  while (!radio.available()) {
+  /*while (!radio.available()) {
     lcd.setCursor(0, 0);
       lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
       lcd.setCursor(0, 1);
@@ -248,7 +247,7 @@ if (Serial.available() > 0) {
       Ack.offset_impostato = false;
       Ack.ValOffset = 0;
   }
-  
+  */
   //debug();
   /* messaggistica di controllo ************************************************************/
   check_Transmission();
@@ -285,10 +284,11 @@ if (Serial.available() > 0) {
      // Ack.offset_impostato = true;
     }
     Serial.println("procedura offset finita  ");
-    //Ack.offset_impostato = true;
+    Ack.offset_impostato = true;
     //Data.offsetRequest = false;
-    //Ack.ValOffset = var;
-    //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+    Ack.ValOffset = var;
+    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+    delay(5);
     //Serial.println("ho impostato ack.offset_impostato a true");
     //Ack.offset_impostato = false;
     //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
@@ -422,10 +422,10 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
     timerPauseRepeat = millis();
     repeatEnable = LOW;
     Serial.println ("cambio la variabile offset impostato a 1");
-    Ack.offset_impostato = true;
-    Ack.ValOffset = var;
-    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-    delay(5);
+    //Ack.offset_impostato = true;
+    //Ack.ValOffset = var;
+    //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+    //delay(5);
     
   }
 

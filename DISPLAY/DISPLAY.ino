@@ -135,7 +135,7 @@ void setup() {
 
   /* Debug*/
 #ifdef DEBUG
-  Serial.begin(115200);
+  Serial.begin(9600);
   printf_begin();
   radio.printDetails();
 #endif
@@ -215,28 +215,36 @@ void setup() {
 void loop()
 {
 
-/*
-if (Serial.available() > 0) {
-    char state = Serial.read();
-    if (state == 'H' || state == 'h') {
-            Ack.offset_impostato =true;
-            Serial.println("Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;");
+  
+    if (Serial.available() > 0) {
+      char state = Serial.read();
+      if (state == 'H' || state == 'h') {
+              Ack.offset_impostato =true;
+              Serial.println("Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;");
+      }
+      if (state == 'L' || state == 'l') {
+              Ack.offset_impostato = false;
+              Serial.println("Ack.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =false");
+      }
+      if (state == 'Z' || state == 'z') {
+              Data.offsetRequest =true;
+              Serial.println("Data.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =true");
+      }
+      if (state == 'X' || state == 'x') {
+              Data.offsetRequest = false;
+              Serial.println("Data.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = false");
+      }
+      if (state == 'R' || state == 'r') {
+              radio.read(&Data, sizeof(struct EncoderData));
+              Serial.println("FORZO LETTURA DATI ************************************************************");
+      }
+      if (state == 'W' || state == 'w') {
+              radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+              Serial.println("FORZO SCRITTURA ACK ************************************************************");
+      }
     }
-    if (state == 'L' || state == 'l') {
-            Ack.offset_impostato = false;
-            Serial.println("Ack.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =false");
-    }
-    if (state == 'Z' || state == 'z') {
-            Data.offsetRequest =true;
-            Serial.println("Data.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =true");
-    }
-    if (state == 'X' || state == 'x') {
-            Data.offsetRequest = false;
-            Serial.println("Data.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = false");
-    }
-  }*/
 
- 
+
   /*while (!radio.available()) {
     lcd.setCursor(0, 0);
       lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
@@ -246,29 +254,29 @@ if (Serial.available() > 0) {
       lcd.print("ENCODER SPENTO");
       Ack.offset_impostato = false;
       Ack.ValOffset = 0;
-  }
+    }
   */
   //debug();
   /* messaggistica di controllo ************************************************************/
-  check_Transmission();
+  //check_Transmission();
   /* messaggistica di controllo ************************************************************/
 
   while (radio.available())
   {
     radio.read(&Data, sizeof(struct EncoderData));
-    
-        Serial.println ("leggo dati radio");
-        Serial.print("Data.offsetRequest      ");
-        Serial.println(Data.offsetRequest);
-        Serial.print("Data.valoreangolocorretto    ");
-        Serial.println(Data.valoreangolocorretto);
+
+    Serial.println ("leggo dati radio");
+    Serial.print("Data.offsetRequest      ");
+    Serial.println(Data.offsetRequest);
+    Serial.print("Data.valoreangolocorretto    ");
+    Serial.println(Data.valoreangolocorretto);
     radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));    // mando il valore di offset come ack !!!
     delay (5);  //permette la spedizione del segnale garantendo il tempo di propagazione (in teoria da aliverti channel)
-        Serial.println ("scrivo dati radio");
-        Serial.print("Ack.ValOffset     ");
-        Serial.println(Ack.ValOffset);
-        Serial.print("Valore impostato Ack.offset_impostato    ");
-        Serial.println(Ack.offset_impostato);
+    Serial.println ("scrivo dati radio");
+    Serial.print("Ack.ValOffset     ");
+    Serial.println(Ack.ValOffset);
+    Serial.print("Valore impostato Ack.offset_impostato    ");
+    Serial.println(Ack.offset_impostato);
 
     previousSuccessfulTransmission = millis();
   }
@@ -280,21 +288,17 @@ if (Serial.available() > 0) {
     while (digitalRead(buttonOkPin) == LOW )
     {
       PROCEDURA_OFFSET();
-      //Ack.ValOffset = var;
-     // Ack.offset_impostato = true;
     }
     Serial.println("procedura offset finita  ");
     Ack.offset_impostato = true;
-    //Data.offsetRequest = false;
     Ack.ValOffset = var;
     radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
     delay(5);
-    //Serial.println("ho impostato ack.offset_impostato a true");
-    //Ack.offset_impostato = false;
-    //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
   }
-  display_angolo();
   
+ Serial.println (" in questo momento ho finito l'offset e mandato ack quindi dovrei mostrare l'angolo sul display");
+  display_angolo();
+
 }
 
 
@@ -314,25 +318,52 @@ if (Serial.available() > 0) {
 
 /* messaggistica di controllo ************************************************************/
 void check_Transmission() {
-  if (millis() - previousSuccessfulTransmission > 500)                   // se non ricevo niente entro tot millisecondi
+
+  /*while (!radio.available()) {
+     display_no_conn();
+    }
+  */
+ /* if (millis() - previousSuccessfulTransmission > 500)
   {
     transmissionState = false;
-#ifdef DEBUG
-    Serial.println("Data transmission error, check Transmitter!");
-#endif
+  } else {
+    transmissionState = true;
+  }
 
-    do {
+  switch (transmissionState) {
+    case false:
       display_no_conn();
-    } while (transmissionState = false) ;
+      break;
+    case true:
+      display_angolo();
+      break;
   }
-  else
-  {
-    transmissionState = true;   // se ricevo conrrettamente il segnale
-    display_angolo();
-#ifdef DEBUG
-    debug();
-#endif
-  }
+
+*/
+
+  
+    if (millis() - previousSuccessfulTransmission > 500)                   // se non ricevo niente entro tot millisecondi
+    {
+     transmissionState = false;
+    #ifdef DEBUG
+     Serial.println("Data transmission error, check Transmitter!");
+    #endif
+
+     do {
+       display_no_conn();
+     } while (transmissionState = false) ;
+    }
+    else
+    {
+     transmissionState = true;   // se ricevo conrrettamente il segnale
+     display_angolo();
+    #ifdef DEBUG
+     debug();
+    #endif
+    }
+  
+
+
 }
 /* messaggistica di controllo ************************************************************/
 
@@ -426,7 +457,7 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
     //Ack.ValOffset = var;
     //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
     //delay(5);
-    
+
   }
 
 #ifdef DEBUG
@@ -489,7 +520,8 @@ void display_angolo() {
   lcd.setCursor(4, 0);
   lcd.print("Angolo:");
   lcd.setCursor(1, 1);
-  lcd.print(Data.valoreangolocorretto);
+  lcd.print("angolocorretto");
+  //lcd.print(Data.valoreangolocorretto);
   lcd.setCursor(10, 1);
   lcd.print("Gradi");
 }

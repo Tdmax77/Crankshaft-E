@@ -1,4 +1,5 @@
-/*  22092020 5:25
+/*  20200924 8:56
+ *   22092020 5:25
      20200921 spostato calcolo offset su encoder ma ci sono provlemi:
      il valore di offset viene risommato la prima volta che spengo e riaccendo il display
      offset viene chiesto 3 volte.
@@ -112,6 +113,7 @@ void setup() {
   /* Setup network */
   radio.begin();
   radio.setDataRate(RF24_250KBPS);
+  radio.setAutoAck(1);
   radio.enableAckPayload();               // Allow optional ack payloads
   //radio.setPALevel(RF24_PA_MAX);
   radio.setPALevel(RF24_PA_MIN);
@@ -236,14 +238,23 @@ if (Serial.available() > 0) {
   }*/
 
  
+  while (!radio.available()) {
+    lcd.setCursor(0, 0);
+      lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
+      lcd.setCursor(0, 1);
+      lcd.print("                 ");
+      lcd.setCursor(0, 0);
+      lcd.print("ENCODER SPENTO");
+      Ack.offset_impostato = false;
+      Ack.ValOffset = 0;
+  }
   
-  delay(50);
   //debug();
   /* messaggistica di controllo ************************************************************/
-  //check_Transmission();
+  check_Transmission();
   /* messaggistica di controllo ************************************************************/
 
-  if (radio.available())
+  while (radio.available())
   {
     radio.read(&Data, sizeof(struct EncoderData));
     
@@ -252,7 +263,8 @@ if (Serial.available() > 0) {
         Serial.println(Data.offsetRequest);
         Serial.print("Data.valoreangolocorretto    ");
         Serial.println(Data.valoreangolocorretto);
-    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));            // mando il valore di offset come ack !!!
+    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));    // mando il valore di offset come ack !!!
+    delay (5);  //permette la spedizione del segnale garantendo il tempo di propagazione (in teoria da aliverti channel)
         Serial.println ("scrivo dati radio");
         Serial.print("Ack.ValOffset     ");
         Serial.println(Ack.ValOffset);
@@ -263,23 +275,23 @@ if (Serial.available() > 0) {
   }
 
 
-  if (Data.offsetRequest == true && Ack.offset_impostato == false)
+  while (Data.offsetRequest == true && Ack.offset_impostato == false)
   {
     testo_richiesta_inserimento_offset();
     while (digitalRead(buttonOkPin) == LOW )
     {
-      //PROCEDURA_OFFSET();
+      PROCEDURA_OFFSET();
       //Ack.ValOffset = var;
-      //Ack.offset_impostato = true;
+     // Ack.offset_impostato = true;
     }
     Serial.println("procedura offset finita  ");
-    Ack.offset_impostato = true;
-    Data.offsetRequest = false;
-    Ack.ValOffset = var;
-    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-    Serial.println("ho impostato ack.offset_impostato a true");
-    Ack.offset_impostato = false;
-    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+    //Ack.offset_impostato = true;
+    //Data.offsetRequest = false;
+    //Ack.ValOffset = var;
+    //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+    //Serial.println("ho impostato ack.offset_impostato a true");
+    //Ack.offset_impostato = false;
+    //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
   }
   display_angolo();
   
@@ -401,7 +413,7 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
       lcd.print(var);
       lcd.setCursor(10, 1);
       lcd.print("Gradi");
-      delay(200);
+      //delay(200);
 
     }
 
@@ -410,9 +422,10 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
     timerPauseRepeat = millis();
     repeatEnable = LOW;
     Serial.println ("cambio la variabile offset impostato a 1");
-    //Ack.offset_impostato = true;
-  // Ack.ValOffset = var;
-   // radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+    Ack.offset_impostato = true;
+    Ack.ValOffset = var;
+    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+    delay(5);
     
   }
 

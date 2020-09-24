@@ -1,9 +1,10 @@
-/*20200922 5:26
- * 20200921 spostato calcolo offset su encoder ma ci sono provlemi:
- *   il valore di offset viene risommato la prima volta che spengo e riaccendo il display
- *   offset viene chiesto 3 volte.
- *   
- * 
+/*20200924 8:57
+ * 20200922 5:26
+   20200921 spostato calcolo offset su encoder ma ci sono provlemi:
+     il valore di offset viene risommato la prima volta che spengo e riaccendo il display
+     offset viene chiesto 3 volte.
+
+
   Encoder: domanda un offset alla prima accensione
   lo riceve nell ack e lo somma al valore letto dall'encoder
   poi lo rispedisce al display per farlo visualizzare
@@ -81,6 +82,7 @@ void setup() {
   /* Setup network */
   radio.begin();
   radio.setDataRate(RF24_250KBPS);
+  radio.setAutoAck(1);
   radio.enableAckPayload();               // Allow optional ack payloads
   // radio.setPALevel(RF24_PA_MAX);
   radio.setPALevel(RF24_PA_MIN);
@@ -110,7 +112,7 @@ void setup() {
   attachInterrupt(0, updateEncoder, CHANGE);
   attachInterrupt(1, updateEncoder, CHANGE);
   /* encoder*/
-Data.offsetRequest = true;
+  Data.offsetRequest = true;
 
   Serial.print("SETUP encoderValue    ");
   Serial.println(encoderValue);
@@ -131,43 +133,43 @@ Data.offsetRequest = true;
 
 
 void loop() {
-delay(2000);
-  if (Serial.available() > 0) {
-    char state = Serial.read();
-    if (state == 'H' || state == 'h') {
-      Ack.offset_impostato = true;
-      Serial.println("Ack.offset_impostato =true %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
-    }
-    if (state == 'L' || state == 'l') {
-      Ack.offset_impostato = false;
-      Serial.println("Ack.offsetRequest =false %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
-    }
-    if (state == 'Z' || state == 'z') {
-      Data.offsetRequest = true;
-      Serial.println("Data.offsetRequest =true %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
-    }
-    if (state == 'X' || state == 'x') {
-      Data.offsetRequest = false;
-      Serial.println("Data.offsetRequest = false %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-    }
+  //delay(2000);
+  /* if (Serial.available() > 0) {
+     char state = Serial.read();
+     if (state == 'H' || state == 'h') {
+       Ack.offset_impostato = true;
+       Serial.println("Ack.offset_impostato =true %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
+     }
+     if (state == 'L' || state == 'l') {
+       Ack.offset_impostato = false;
+       Serial.println("Ack.offsetRequest =false %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
+     }
+     if (state == 'Z' || state == 'z') {
+       Data.offsetRequest = true;
+       Serial.println("Data.offsetRequest =true %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
+     }
+     if (state == 'X' || state == 'x') {
+       Data.offsetRequest = false;
+       Serial.println("Data.offsetRequest = false %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+     }
 
-  }
-  
+    }
+  */
 #ifdef DEBUG
-    delay(10);
-    debug3();
-   
+  //delay(10);
+  debug3();
+
 #endif
 
   //Data.encoderValueTX = encoderValue;
   Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ; //AngoloLetto;
-  
+
   if (radio.write(&Data, sizeof(struct EncoderData)))                     // se radio attiva trasmetto
   {
     if (radio.isAckPayloadAvailable())                                    // leggo ack
     {
       radio.read(&Ack, sizeof(struct AckPayload));
-       Serial.println ("leggo dati ack");
+      Serial.println ("leggo dati ack");
       previousSuccessfulTransmission = millis();
     }
   }
@@ -189,17 +191,17 @@ delay(2000);
   }
   /* ****************************************************** CONTROLLO RICEZIONE DATI ************************************/
 
- if (Ack.offset_impostato == true)   // se Display azzera il contatore dopo aver inserito l'offest, azzero anche il dato
-  { 
+  if (Ack.offset_impostato == true)   // se Display azzera il contatore dopo aver inserito l'offest, azzero anche il dato
+  {
     Data.offsetRequest = false;
     radio.write(&Data, sizeof(struct EncoderData));
     //mandare dato con stato
-   
+
   }
 
-  if (Ack.offset_impostato == true ) IMPOSTATO_DA_DISPLAY = true;
-  Serial.print ("IMPOSTATO DA DISPLAY   ");
-  Serial.println (IMPOSTATO_DA_DISPLAY);
+  // if (Ack.offset_impostato == true ) IMPOSTATO_DA_DISPLAY = true;
+  // Serial.print ("IMPOSTATO DA DISPLAY   ");
+  // Serial.println (IMPOSTATO_DA_DISPLAY);
 }
 
 
@@ -311,18 +313,18 @@ void debug2() {
 
 void debug3() {
 #ifdef DEBUG
- // Serial.println("DATI TRASMESSI");
+  // Serial.println("DATI TRASMESSI");
   Serial.print("Data.valoreangolocorretto     ");
   Serial.println(Data.valoreangolocorretto);
- //  Serial.print("risoluzioneEmcoder     ");
-//  Serial.println(risoluzioneEncoder);
+  //  Serial.print("risoluzioneEmcoder     ");
+  //  Serial.println(risoluzioneEncoder);
   Serial.print("encoderValue    ");
   Serial.println(encoderValue);
   Serial.print("Ack.ValOffset      ");
   Serial.println(Ack.ValOffset);
   Serial.print("Data.offsetRequest      ");
   Serial.println(Data.offsetRequest);
-//  Serial.println("DATI RICEVUTI");
+  //  Serial.println("DATI RICEVUTI");
   Serial.print("Ack.offset_impostato        ");
   Serial.println(Ack.offset_impostato );
   Serial.println("");

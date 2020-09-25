@@ -1,11 +1,22 @@
-/*  22092020 5:25
-     20200921 spostato calcolo offset su encoder ma ci sono provlemi:
-     il valore di offset viene risommato la prima volta che spengo e riaccendo il display
-     offset viene chiesto 3 volte.
+/*  Questo programma va su un Nano con display 1602 e modulo radio nrf24l01.
+    Funzionamento:
+    Flusso trasmissione dati:
+
+    Encoder > Data.offsetRequet          > Display
+            > Data.valoreangolocorretto  >
+            < Ack.offset_impostato       <
+            < Ack.ValOffset              <
+
+    Encoder appena acceso ha la variabile Data.offsetRequest a 1 ovvero manda una richiesta di inserimento offset al display;
+    Display visualizza la richiesta, registra un dato var che inserisco io e lo spedisce come Ack.Valoffset all'Encoder, poi spedisce anche un Ack.offset_impostato a 1 (era a zero) ad encoder
+    Quando encoder riceve il Ack.offsetimpostato a 1 allora manda a 0 Data.offsetRequest (e quindi non chiederà più un offset).
+    Il programma procede visualizzando il dato Data.valoreangolocorretto che è la somma di Ack.Valoffset + il valore letto dall'encoder.
+    il calcolo lo fa l'encoder, in tal modo se dovessi spegnere il display o perdere il segnale, il dato non cambierà.
+    Se l'encoder viene spento, display avvisa che non lo riceve (anche se va fuori campo).
+    Quando si riaccende l'encoder, la variabile Data.offsetRequest parte a 1 quindi chiede di reinserire un valore di offset.
 
 
-  Ricevitore per Encoder: riceve un segnale grezzo dall'encoder (numero di step) e lo converte in un angolo
-  da visualizzare sul display .
+  Connessioni Display:
 
   modulo nrf24
   CE   9
@@ -31,7 +42,7 @@
 
 /* variabile display*/
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-long encoderValuePrev;  //serve a creare la routine per aggoirnare il display solo quando serve
+long encoderValuePrev;  //serve a creare la routine per aggiornare il display solo quando serve
 
 /* variabile display*/
 
@@ -51,22 +62,21 @@ volatile long encoderValue;
 //questa struttura manda i dati dall'encoder al display
 struct EncoderData {
   bool offsetRequest = true; //se prima accensione richiederà l'offset
-  float valoreangolocorretto;
+  float valoreangolocorretto; // valore che verrà visualizzato ovvero la somma del valore dell'encoder + l'offset che ho inserito
 };
 EncoderData Data;
 
-//questa struttura definisce l'ack payload
+//questa struttura definisce l'ack payload ovvero i dati dal display all'encoder
 struct AckPayload {
   int ValOffset = 0; //valore letto sul volano e impostato dal display
   bool offset_impostato = false; // se display rileva chisura encoder ridomanda offset
 };
-
 AckPayload Ack;
 /*variabile network */
 
 
 
-/*Variabili Offset*/
+/*Variabili Offset servono ad inserire il valore usando i 3 pulsanti*/
 const int buttonOkPin = 4;
 const int buttonUpPin = 3;  //numero pin a cui è collegato il pulsante di UP
 const int buttonDownPin = 2;  //numero pin a cui è collegato il pulsnte di DOWN
@@ -94,9 +104,6 @@ int readingDown = 0;  //Lettura ingresso digitale del pulsante di Down
 
 /*Variabili Pulsanti */
 int pulsante_1 = 0;
-//const int buttonOkpin = 6;
-//const int buttonUpPin = 4;  //numero pin a cui è collegato il pulsante di UP
-//const int buttonDownPin = 5;  //numero pin a cui è collegato il pulsnte di DOWN
 /*Variabili Pulsanti */
 
 bool IMPOSTATO_DA_DISPLAY = false;
@@ -147,13 +154,10 @@ void setup() {
 
 
   /*Parte Variabile Offset*/
-  pinMode (buttonUpPin, INPUT); //impostazione buttonUpPin come ingresso
+  pinMode (buttonUpPin, INPUT);   //impostazione buttonUpPin come ingresso
   pinMode (buttonDownPin, INPUT); //impostazione buttonDownPin come ingresso
-  pinMode (buttonOkPin, INPUT);
+  pinMode (buttonOkPin, INPUT);   //impostazione buttonOkPin come ingresso
   /*Parte Variabile Offset*/
-
-
-
 }
 
 
@@ -214,91 +218,21 @@ void setup() {
 
 void loop()
 {
-
-  
-    if (Serial.available() > 0) {
-      char state = Serial.read();
-      if (state == 'H' || state == 'h') {
-              Ack.offset_impostato =true;
-              Serial.println("Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;Ack.offset_impostato =true;");
-      }
-      if (state == 'L' || state == 'l') {
-              Ack.offset_impostato = false;
-              Serial.println("Ack.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =falseAck.offsetRequest =false");
-      }
-      if (state == 'Z' || state == 'z') {
-              Data.offsetRequest =true;
-              Serial.println("Data.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =trueData.offsetRequest =true");
-      }
-      if (state == 'X' || state == 'x') {
-              Data.offsetRequest = false;
-              Serial.println("Data.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = falseData.offsetRequest = false");
-      }
-      if (state == 'R' || state == 'r') {
-              radio.read(&Data, sizeof(struct EncoderData));
-              Serial.println("FORZO LETTURA DATI ************************************************************");
-      }
-      if (state == 'W' || state == 'w') {
-              radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-              Serial.println("FORZO SCRITTURA ACK ************************************************************");
-      }
-    }
-
-
-  /*while (!radio.available()) {
-    lcd.setCursor(0, 0);
+  switch (radio.available()) {
+    case  false:
+      lcd.setCursor(0, 0);
       lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
       lcd.setCursor(0, 1);
       lcd.print("                 ");
       lcd.setCursor(0, 0);
       lcd.print("ENCODER SPENTO");
-      Ack.offset_impostato = false;
-      Ack.ValOffset = 0;
-    }
-  */
-  //debug();
-  /* messaggistica di controllo ************************************************************/
-  //check_Transmission();
-  /* messaggistica di controllo ************************************************************/
 
-  while (radio.available())
-  {
-    radio.read(&Data, sizeof(struct EncoderData));
+      //display_no_conn();
+      break;
+    default:
+      PROCESSO();
 
-    Serial.println ("leggo dati radio");
-    Serial.print("Data.offsetRequest      ");
-    Serial.println(Data.offsetRequest);
-    Serial.print("Data.valoreangolocorretto    ");
-    Serial.println(Data.valoreangolocorretto);
-    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));    // mando il valore di offset come ack !!!
-    delay (5);  //permette la spedizione del segnale garantendo il tempo di propagazione (in teoria da aliverti channel)
-    Serial.println ("scrivo dati radio");
-    Serial.print("Ack.ValOffset     ");
-    Serial.println(Ack.ValOffset);
-    Serial.print("Valore impostato Ack.offset_impostato    ");
-    Serial.println(Ack.offset_impostato);
-
-    previousSuccessfulTransmission = millis();
   }
-
-
-  while (Data.offsetRequest == true && Ack.offset_impostato == false)
-  {
-    testo_richiesta_inserimento_offset();
-    while (digitalRead(buttonOkPin) == LOW )
-    {
-      PROCEDURA_OFFSET();
-    }
-    Serial.println("procedura offset finita  ");
-    Ack.offset_impostato = true;
-    Ack.ValOffset = var;
-    radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-    delay(5);
-  }
-  
- Serial.println (" in questo momento ho finito l'offset e mandato ack quindi dovrei mostrare l'angolo sul display");
-  display_angolo();
-
 }
 
 
@@ -315,57 +249,123 @@ void loop()
 /*****************************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************************/
+
+void PROCESSO() {
+  /* messaggistica di controllo ************************************************************/
+  //check_Transmission();
+  /* messaggistica di controllo ************************************************************/
+  radio.read(&Data, sizeof(struct EncoderData));
+  int richiestaoffset = Data.offsetRequest;
+
+  switch (richiestaoffset) {
+    case true:
+      testo_richiesta_inserimento_offset();
+      while (digitalRead(buttonOkPin) == LOW )
+      {
+        PROCEDURA_OFFSET();
+      }
+#ifdef DEBUG
+      Serial.println("procedura offset finita  ");
+#endif
+
+      Ack.offset_impostato = true;
+      Ack.ValOffset = var;
+      radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+      delay(5);
+      break;
+
+    default:
+      radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));    // mando il valore di offset come ack !!!
+      delay (5);  //permette la spedizione del segnale garantendo il tempo di propagazione (in teoria da aliverti channel)
+      previousSuccessfulTransmission = millis();
+      lcd.setCursor(0, 0);
+  lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
+  lcd.setCursor(0, 1);
+  lcd.print("                 ");
+  lcd.setCursor(4, 0);
+  lcd.print("Angolo:");
+  lcd.setCursor(1, 1);
+  lcd.print(Data.valoreangolocorretto);
+  lcd.setCursor(10, 1);
+  lcd.print("Gradi");
+      
+  }
+/*  //     radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));    // mando il valore di offset come ack !!!
+  //     delay (5);  //permette la spedizione del segnale garantendo il tempo di propagazione (in teoria da aliverti channel)
+  //     previousSuccessfulTransmission = millis();
+
+#ifdef DEBUG
+  Serial.println ("scrivo dati radio");
+  Serial.print("Ack.ValOffset     ");
+  Serial.println(Ack.ValOffset);
+  Serial.print("Valore impostato Ack.offset_impostato    ");
+  Serial.println(Ack.offset_impostato);
+#endif
+
+  /*  while (Data.offsetRequest == true && Ack.offset_impostato == false)
+    {
+      testo_richiesta_inserimento_offset();
+      while (digitalRead(buttonOkPin) == LOW )
+      {
+        PROCEDURA_OFFSET();
+      }
+    #ifdef DEBUG
+      Serial.println("procedura offset finita  ");
+    #endif
+
+      Ack.offset_impostato = true;
+      Ack.ValOffset = var;
+      radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+      delay(5);
+    }
+  */
+  /*
+#ifdef DEBUG
+  Serial.println (" in questo momento ho finito l'offset e mandato ack quindi dovrei mostrare l'angolo sul display");
+  //display_angolo();
+#endif
+
+  lcd.setCursor(0, 0);
+  lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
+  lcd.setCursor(0, 1);
+  lcd.print("                 ");
+  lcd.setCursor(4, 0);
+  lcd.print("Angolo:");
+  lcd.setCursor(1, 1);
+  lcd.print(Data.valoreangolocorretto);
+  lcd.setCursor(10, 1);
+  lcd.print("Gradi");
+  */
+}
+
+
+
+
+
 
 /* messaggistica di controllo ************************************************************/
 void check_Transmission() {
 
-  /*while (!radio.available()) {
-     display_no_conn();
-    }
-  */
- /* if (millis() - previousSuccessfulTransmission > 500)
+  if (millis() - previousSuccessfulTransmission > 500)                   // se non ricevo niente entro tot millisecondi
   {
     transmissionState = false;
-  } else {
-    transmissionState = true;
-  }
-
-  switch (transmissionState) {
-    case false:
+#ifdef DEBUG
+    Serial.println("Data transmission error, check Transmitter!");
+#endif
+    do {
       display_no_conn();
-      break;
-    case true:
-      display_angolo();
-      break;
+    } while (transmissionState = false) ;
   }
-
-*/
-
-  
-    if (millis() - previousSuccessfulTransmission > 500)                   // se non ricevo niente entro tot millisecondi
-    {
-     transmissionState = false;
-    #ifdef DEBUG
-     Serial.println("Data transmission error, check Transmitter!");
-    #endif
-
-     do {
-       display_no_conn();
-     } while (transmissionState = false) ;
-    }
-    else
-    {
-     transmissionState = true;   // se ricevo conrrettamente il segnale
-     display_angolo();
-    #ifdef DEBUG
-     debug();
-    #endif
-    }
-  
-
-
+  else
+  {
+    transmissionState = true;   // se ricevo conrrettamente il segnale
+    // display_angolo();
+  }
 }
 /* messaggistica di controllo ************************************************************/
+
+
+
 
 
 
@@ -452,7 +452,7 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
     timerButtonPushed = millis();
     timerPauseRepeat = millis();
     repeatEnable = LOW;
-    Serial.println ("cambio la variabile offset impostato a 1");
+    //   Serial.println ("cambio la variabile offset impostato a 1");
     //Ack.offset_impostato = true;
     //Ack.ValOffset = var;
     //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
@@ -460,19 +460,19 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
 
   }
 
-#ifdef DEBUG
-  Serial.println("");
-  Serial.print("Valore impostato su var    ");
-  Serial.println(var);
-  Serial.print("Valore impostato Ack.offset_impostato    ");
-  Serial.println(Ack.offset_impostato);
-  Serial.print("Valore impostato  Data.offserRequest   ");
-  Serial.println(Data.offsetRequest);
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
-#endif
-
+  /*#ifdef DEBUG
+    Serial.println("");
+    Serial.print("Valore impostato su var    ");
+    Serial.println(var);
+    Serial.print("Valore impostato Ack.offset_impostato    ");
+    Serial.println(Ack.offset_impostato);
+    Serial.print("Valore impostato  Data.offserRequest   ");
+    Serial.println(Data.offsetRequest);
+    Serial.println("");
+    Serial.println("");
+    Serial.println("");
+    #endif
+  */
 }
 
 

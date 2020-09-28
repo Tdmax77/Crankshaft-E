@@ -171,20 +171,42 @@ void loop()
     default:
       radio.read(&Data, sizeof(struct EncoderData));  //leggo i dati
       int richiestaoffset = Data.offsetRequest;
+
+      Serial.print ("prima dello switch off req  ");
+      Serial.println (Data.offsetRequest);
+      Serial.print ("prima dello switch off impost  ");
+      Serial.println (Ack.offset_impostato);
       switch (richiestaoffset) {                      // se è richiesto l'offset (prima accensione di encoder) eseguo procedura
         case true:
+          //Ack.offset_impostato = true;
+          //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+          //delay(5);
           testo_richiesta_inserimento_offset();
           while (digitalRead(buttonOkPin) == LOW )
           {
             PROCEDURA_OFFSET();
+            Serial.println ("sono nel while dopo la procedura  ");
+            Serial.print ("prima dello switch off req  ");
+            Serial.println (Data.offsetRequest);
+            Serial.print ("prima dello switch off impost  ");
+            Serial.println (Ack.offset_impostato);
           }
           Ack.offset_impostato = true;
           Ack.ValOffset = var;
           radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
           delay(5);
           break;
+          Serial.print ("sono dopo il break  ");
+          Serial.print ("prima dello switch off req  ");
+          Serial.println (Data.offsetRequest);
+          Serial.print ("prima dello switch off impost  ");
+          Serial.println (Ack.offset_impostato);
 
-        default:
+        default: Serial.print ("sononel default ");
+          Serial.print ("prima dello switch off req  ");
+          Serial.println (Data.offsetRequest);
+          Serial.print ("prima dello switch off impost  ");
+          Serial.println (Ack.offset_impostato);
           display_angolo();
       }
   }
@@ -297,6 +319,7 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
     timerPauseRepeat = millis();
     repeatEnable = LOW;
   }
+delay (50);
 }
 
 void display_no_conn() {
@@ -326,5 +349,5 @@ void display_angolo() {
   lcd.print("          ");
   lcd.setCursor(1, 1);
   lcd.print(Data.valoreangolocorretto);
-  
+
 }

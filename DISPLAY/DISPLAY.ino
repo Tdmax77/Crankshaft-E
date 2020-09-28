@@ -69,6 +69,8 @@ struct AckPayload {
   bool offset_impostato = false; // se display rileva chisura encoder ridomanda offset
 };
 AckPayload Ack;
+
+float valoreangolocorrettoPrev;
 /*variabile network */
 
 
@@ -178,9 +180,6 @@ void loop()
       Serial.println (Ack.offset_impostato);
       switch (richiestaoffset) {                      // se è richiesto l'offset (prima accensione di encoder) eseguo procedura
         case true:
-          //Ack.offset_impostato = true;
-          //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-          //delay(5);
           testo_richiesta_inserimento_offset();
           while (digitalRead(buttonOkPin) == LOW )
           {
@@ -194,6 +193,7 @@ void loop()
           Ack.offset_impostato = true;
           Ack.ValOffset = var;
           radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
+          radio.read(&Data, sizeof(struct EncoderData));
           delay(5);
           break;
           Serial.print ("sono dopo il break  ");
@@ -202,12 +202,18 @@ void loop()
           Serial.print ("prima dello switch off impost  ");
           Serial.println (Ack.offset_impostato);
 
-        default: Serial.print ("sononel default ");
+        default:
+        Serial.print ("sononel default ");
           Serial.print ("prima dello switch off req  ");
           Serial.println (Data.offsetRequest);
           Serial.print ("prima dello switch off impost  ");
           Serial.println (Ack.offset_impostato);
-          display_angolo();
+          if (Data.valoreangolocorretto != valoreangolocorrettoPrev){
+            valoreangolocorrettoPrev = Data.valoreangolocorretto;
+            display_angolo();
+          }
+          
+          break;
       }
   }
 }
@@ -313,13 +319,14 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
       lcd.print(var);
       lcd.setCursor(10, 1);
       lcd.print("Gradi");
+      delay(200);
     }
   } else {
     timerButtonPushed = millis();
     timerPauseRepeat = millis();
     repeatEnable = LOW;
   }
-delay (50);
+
 }
 
 void display_no_conn() {

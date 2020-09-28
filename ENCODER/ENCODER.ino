@@ -1,5 +1,5 @@
 /*20200924 8:57
- * 20200922 5:26
+   20200922 5:26
    20200921 spostato calcolo offset su encoder ma ci sono provlemi:
      il valore di offset viene risommato la prima volta che spengo e riaccendo il display
      offset viene chiesto 3 volte.
@@ -46,7 +46,6 @@ int lastLSB = 0;
 RF24 radio(9, 10);               // nRF24L01 (CE,CSN)
 const uint64_t add1 = 0xf0f0f0f0e1LL;
 char msg[20];
-//int AngoloLetto;
 int ValOffset = 0 ;
 boolean transmissionState;
 static unsigned long previousSuccessfulTransmission;
@@ -87,7 +86,6 @@ void setup() {
   // radio.setPALevel(RF24_PA_MAX);
   radio.setPALevel(RF24_PA_MIN);
   radio.enableDynamicPayloads();
-  // radio.setRetries(5, 5);                  // 5x250us delay (blocking!!), max. 5 retries
   radio.openWritingPipe(add1);       // Both radios listen on the same pipes by default, and switch when writing
   /* Setup network */
 
@@ -101,7 +99,6 @@ void setup() {
 
 #ifndef DEBUG
   Serial.end(); // make sure, serial is off!
-  //UCSR0B = 0b00000000;
 #endif
 
   /*Debug*/
@@ -133,37 +130,11 @@ void setup() {
 
 
 void loop() {
-  //delay(2000);
-  /* if (Serial.available() > 0) {
-     char state = Serial.read();
-     if (state == 'H' || state == 'h') {
-       Ack.offset_impostato = true;
-       Serial.println("Ack.offset_impostato =true %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
-     }
-     if (state == 'L' || state == 'l') {
-       Ack.offset_impostato = false;
-       Serial.println("Ack.offsetRequest =false %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
-     }
-     if (state == 'Z' || state == 'z') {
-       Data.offsetRequest = true;
-       Serial.println("Data.offsetRequest =true %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ");
-     }
-     if (state == 'X' || state == 'x') {
-       Data.offsetRequest = false;
-       Serial.println("Data.offsetRequest = false %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-     }
 
-    }
-  */
-#ifdef DEBUG
-  //delay(10);
-  debug3();
-
-#endif
-
-  //Data.encoderValueTX = encoderValue;
   Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ; //AngoloLetto;
-
+//float valoreangolocorretto_pre = Data.valoreangolocorretto;
+//if (valoreangolocorretto_pre != Data.valoreangolocorretto){
+ 
   if (radio.write(&Data, sizeof(struct EncoderData)))                     // se radio attiva trasmetto
   {
     if (radio.isAckPayloadAvailable())                                    // leggo ack
@@ -173,7 +144,8 @@ void loop() {
       previousSuccessfulTransmission = millis();
     }
   }
-
+//  valoreangolocorretto_pre == Data.valoreangolocorretto;
+//}
   /* ****************************************************** CONTROLLO RICEZIONE DATI ************************************/
   if (millis() - previousSuccessfulTransmission > 500)                  //se maggiore di tot non ricevuto ack
   {
@@ -195,13 +167,7 @@ void loop() {
   {
     Data.offsetRequest = false;
     radio.write(&Data, sizeof(struct EncoderData));
-    //mandare dato con stato
-
   }
-
-  // if (Ack.offset_impostato == true ) IMPOSTATO_DA_DISPLAY = true;
-  // Serial.print ("IMPOSTATO DA DISPLAY   ");
-  // Serial.println (IMPOSTATO_DA_DISPLAY);
 }
 
 

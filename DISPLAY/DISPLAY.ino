@@ -24,10 +24,10 @@
   mosi 11
   miso 12
   sck  13
-  pulsante 1 7
+  pulsante 1 non utilizzato = 7;
   const int buttonOk = 6;
-  const int buttonUpPin = 4
-  const int buttonDownPin = 5
+  const int buttonUpPin = 4;
+  const int buttonDownPin = 5;
 
 */
 #include <RF24.h>
@@ -42,8 +42,6 @@
 
 /* variabile display*/
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-long encoderValuePrev;  //serve a creare la routine per aggiornare il display solo quando serve
-
 /* variabile display*/
 
 /*variabile network */
@@ -52,11 +50,10 @@ const uint64_t add1 = 0xf0f0f0f0e1LL;
 char msg[20];
 static unsigned long previousSuccessfulTransmission;
 boolean transmissionState = true;       // per laggiornamento del display dopo che ha perso il segnale
-boolean PretransmissionState = false;  // per conttrollare la prerdita/ripresa del segnale
+boolean PretransmissionState = false;   // per conttrollare la prerdita/ripresa del segnale
 
 /* conversione Angolo */
 float Angolo;
-volatile long encoderValue;
 /* conversione Angolo */
 
 //questa struttura manda i dati dall'encoder al display
@@ -105,8 +102,6 @@ int readingDown = 0;  //Lettura ingresso digitale del pulsante di Down
 /*Variabili Pulsanti */
 int pulsante_1 = 0;
 /*Variabili Pulsanti */
-
-bool IMPOSTATO_DA_DISPLAY = false;
 
 
 
@@ -220,16 +215,14 @@ void loop()
 {
   switch (radio.available()) {
     case  false:
-      lcd.setCursor(0, 0);
-      lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
       lcd.setCursor(0, 1);
-      lcd.print("                 ");
+      lcd.print("                ");
       lcd.setCursor(0, 0);
-      lcd.print("ENCODER SPENTO");
-
+      lcd.print("ENCODER SPENTO  ");
       //display_no_conn();
       break;
     default:
+      lcd.clear();
       PROCESSO();
 
   }
@@ -264,10 +257,6 @@ void PROCESSO() {
       {
         PROCEDURA_OFFSET();
       }
-#ifdef DEBUG
-      Serial.println("procedura offset finita  ");
-#endif
-
       Ack.offset_impostato = true;
       Ack.ValOffset = var;
       radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
@@ -278,250 +267,190 @@ void PROCESSO() {
       radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));    // mando il valore di offset come ack !!!
       delay (5);  //permette la spedizione del segnale garantendo il tempo di propagazione (in teoria da aliverti channel)
       previousSuccessfulTransmission = millis();
-      lcd.setCursor(0, 0);
-  lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
-  lcd.setCursor(0, 1);
-  lcd.print("                 ");
-  lcd.setCursor(4, 0);
-  lcd.print("Angolo:");
-  lcd.setCursor(1, 1);
-  lcd.print(Data.valoreangolocorretto);
-  lcd.setCursor(10, 1);
-  lcd.print("Gradi");
-      
-  }
-/*  //     radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));    // mando il valore di offset come ack !!!
-  //     delay (5);  //permette la spedizione del segnale garantendo il tempo di propagazione (in teoria da aliverti channel)
-  //     previousSuccessfulTransmission = millis();
-
-#ifdef DEBUG
-  Serial.println ("scrivo dati radio");
-  Serial.print("Ack.ValOffset     ");
-  Serial.println(Ack.ValOffset);
-  Serial.print("Valore impostato Ack.offset_impostato    ");
-  Serial.println(Ack.offset_impostato);
-#endif
-
-  /*  while (Data.offsetRequest == true && Ack.offset_impostato == false)
-    {
-      testo_richiesta_inserimento_offset();
-      while (digitalRead(buttonOkPin) == LOW )
-      {
-        PROCEDURA_OFFSET();
-      }
-    #ifdef DEBUG
-      Serial.println("procedura offset finita  ");
-    #endif
-
-      Ack.offset_impostato = true;
-      Ack.ValOffset = var;
-      radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-      delay(5);
-    }
-  */
-  /*
-#ifdef DEBUG
-  Serial.println (" in questo momento ho finito l'offset e mandato ack quindi dovrei mostrare l'angolo sul display");
-  //display_angolo();
-#endif
-
-  lcd.setCursor(0, 0);
-  lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
-  lcd.setCursor(0, 1);
-  lcd.print("                 ");
-  lcd.setCursor(4, 0);
-  lcd.print("Angolo:");
-  lcd.setCursor(1, 1);
-  lcd.print(Data.valoreangolocorretto);
-  lcd.setCursor(10, 1);
-  lcd.print("Gradi");
-  */
-}
-
-
-
-
-
-
-/* messaggistica di controllo ************************************************************/
-void check_Transmission() {
-
-  if (millis() - previousSuccessfulTransmission > 500)                   // se non ricevo niente entro tot millisecondi
-  {
-    transmissionState = false;
-#ifdef DEBUG
-    Serial.println("Data transmission error, check Transmitter!");
-#endif
-    do {
-      display_no_conn();
-    } while (transmissionState = false) ;
-  }
-  else
-  {
-    transmissionState = true;   // se ricevo conrrettamente il segnale
-    // display_angolo();
-  }
-}
-/* messaggistica di controllo ************************************************************/
-
-
-
-
-
-
-void readButtonState() {
-
-  int readingUp = digitalRead(buttonUpPin); //Lettura ingresso digitale del pulsante di UP
-  int readingDown = digitalRead(buttonDownPin); //Lettura ingresso digitale del pulsante di Down
-
-  if (readingUp == HIGH) {
-    if ((millis() - UpDebounceTime) > debounceDelay) {
-      buttonUpState = HIGH;
-    }
-  } else {
-    buttonUpState = LOW;
-    UpDebounceTime = millis();
-  }
-
-  if (readingDown == HIGH) {
-    if ((millis() - DownDebounceTime) > debounceDelay) {
-      buttonDownState = HIGH;
-    }
-  } else {
-    buttonDownState = LOW;
-    DownDebounceTime = millis();
-  }
-
-}
-
-
-
-
-
-
-void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come offset
-{
-#ifdef DEBUG
-  Serial.println("");
-  Serial.println("SONO NELLA PROCEDURA OFFSET()");
-  Serial.println("");
-#endif
-  readButtonState();  //Lettura stato buttons con controllo antirimbalzo
-
-  if (buttonUpState == HIGH || buttonDownState == HIGH) {
-    if ((repeatEnable == HIGH && ((millis() - timerPauseRepeat) > time_pause)) || repeatEnable == LOW) {
-      if ((millis() - timerButtonPushed) > time_add_10) {
-        if ((millis() - timerButtonPushed) > time_add_100) {
-          if (buttonUpState == HIGH) var = var + 100;
-          if (buttonDownState == HIGH) var = var - 100;
-        } else {
-          int resto = 0;
-          if (buttonUpState == HIGH) resto = 10 - (var % 10);
-          if (buttonDownState == HIGH) resto = (var % 10);
-          if (resto == 0) {
-            if (buttonUpState == HIGH) var = var + 10;
-            if (buttonDownState == HIGH) var = var - 10;
-          } else {
-            if (buttonUpState == HIGH) var = var + resto;
-            if (buttonDownState == HIGH) var = var - resto;
-          }
-        }
-      } else {
-        if (buttonUpState == HIGH) var++;
-        if (buttonDownState == HIGH) var--;
-      }
-      timerPauseRepeat = millis();
-      repeatEnable = HIGH;
-      if (var > varMax) var = varMax;
-      if (var < varMin) var = varMin;
-      lcd.setCursor(0, 0);
-      lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
+      //lcd.setCursor(0, 0);
+      //lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
       lcd.setCursor(0, 1);
       lcd.print("                 ");
       lcd.setCursor(0, 0);
-      lcd.print("Inserire Offset:");
+      lcd.print("    Angolo:     ");
       lcd.setCursor(1, 1);
-      lcd.print(var);
+      lcd.print(Data.valoreangolocorretto);
       lcd.setCursor(10, 1);
       lcd.print("Gradi");
-      //delay(200);
 
+  }
+}
+
+
+ /********************************************************************************************************************************
+ /********************************************************************************************************************************
+ /*****************************************************************************************************************************
+
+
+
+
+
+
+
+
+
+ /* messaggistica di controllo ************************************************************/
+  void check_Transmission() {
+
+    if (millis() - previousSuccessfulTransmission > 500)                   // se non ricevo niente entro tot millisecondi
+    {
+      transmissionState = false;
+#ifdef DEBUG
+      Serial.println("Data transmission error, check Transmitter!");
+#endif
+      do {
+        display_no_conn();
+      } while (transmissionState = false) ;
+    }
+    else
+    {
+      transmissionState = true;   // se ricevo conrrettamente il segnale
+      // display_angolo();
+    }
+  }
+  /* messaggistica di controllo ************************************************************/
+
+
+
+
+
+
+  void readButtonState() {
+
+    int readingUp = digitalRead(buttonUpPin); //Lettura ingresso digitale del pulsante di UP
+    int readingDown = digitalRead(buttonDownPin); //Lettura ingresso digitale del pulsante di Down
+
+    if (readingUp == HIGH) {
+      if ((millis() - UpDebounceTime) > debounceDelay) {
+        buttonUpState = HIGH;
+      }
+    } else {
+      buttonUpState = LOW;
+      UpDebounceTime = millis();
     }
 
-  } else {
-    timerButtonPushed = millis();
-    timerPauseRepeat = millis();
-    repeatEnable = LOW;
-    //   Serial.println ("cambio la variabile offset impostato a 1");
-    //Ack.offset_impostato = true;
-    //Ack.ValOffset = var;
-    //radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
-    //delay(5);
+    if (readingDown == HIGH) {
+      if ((millis() - DownDebounceTime) > debounceDelay) {
+        buttonDownState = HIGH;
+      }
+    } else {
+      buttonDownState = LOW;
+      DownDebounceTime = millis();
+    }
 
   }
 
-  /*#ifdef DEBUG
+
+
+
+
+
+  void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come offset
+  {
+#ifdef DEBUG
     Serial.println("");
-    Serial.print("Valore impostato su var    ");
-    Serial.println(var);
-    Serial.print("Valore impostato Ack.offset_impostato    ");
-    Serial.println(Ack.offset_impostato);
-    Serial.print("Valore impostato  Data.offserRequest   ");
+    Serial.println("SONO NELLA PROCEDURA OFFSET()");
+    Serial.println("");
+#endif
+    readButtonState();  //Lettura stato buttons con controllo antirimbalzo
+
+    if (buttonUpState == HIGH || buttonDownState == HIGH) {
+      if ((repeatEnable == HIGH && ((millis() - timerPauseRepeat) > time_pause)) || repeatEnable == LOW) {
+        if ((millis() - timerButtonPushed) > time_add_10) {
+          if ((millis() - timerButtonPushed) > time_add_100) {
+            if (buttonUpState == HIGH) var = var + 100;
+            if (buttonDownState == HIGH) var = var - 100;
+          } else {
+            int resto = 0;
+            if (buttonUpState == HIGH) resto = 10 - (var % 10);
+            if (buttonDownState == HIGH) resto = (var % 10);
+            if (resto == 0) {
+              if (buttonUpState == HIGH) var = var + 10;
+              if (buttonDownState == HIGH) var = var - 10;
+            } else {
+              if (buttonUpState == HIGH) var = var + resto;
+              if (buttonDownState == HIGH) var = var - resto;
+            }
+          }
+        } else {
+          if (buttonUpState == HIGH) var++;
+          if (buttonDownState == HIGH) var--;
+        }
+        timerPauseRepeat = millis();
+        repeatEnable = HIGH;
+        if (var > varMax) var = varMax;
+        if (var < varMin) var = varMin;
+        lcd.setCursor(0, 0);
+        lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
+        lcd.setCursor(0, 1);
+        lcd.print("                 ");
+        lcd.setCursor(0, 0);
+        lcd.print("Inserire Offset:");
+        lcd.setCursor(1, 1);
+        lcd.print(var);
+        lcd.setCursor(10, 1);
+        lcd.print("Gradi");
+      }
+    } else {
+      timerButtonPushed = millis();
+      timerPauseRepeat = millis();
+      repeatEnable = LOW;
+    }
+  }
+
+
+
+
+  void debug() {
+
+    Serial.println("Data successfully received");
+    Serial.println("DATI RICEVUTI");
+    Serial.print("Data.valoreangolocorretto    ");
+    Serial.println(Data.valoreangolocorretto);
+    Serial.print("Data.offsetRequest      ");
     Serial.println(Data.offsetRequest);
     Serial.println("");
     Serial.println("");
+    Serial.println("DATI INVIATI ");
+    Serial.print("Ack.ValOffset     ");
+    Serial.println(Ack.ValOffset);
+    Serial.print("Valore impostato Ack.offset_impostato    ");
+    Serial.println(Ack.offset_impostato);
     Serial.println("");
-    #endif
-  */
-}
+    Serial.println("");
 
+  }
 
-void debug() {
+  void display_no_conn() {
 
-  Serial.println("Data successfully received");
-  Serial.println("DATI RICEVUTI");
-  Serial.print("Data.valoreangolocorretto    ");
-  Serial.println(Data.valoreangolocorretto);
-  Serial.print("Data.offsetRequest      ");
-  Serial.println(Data.offsetRequest);
-  Serial.println("");
-  Serial.println("");
-  Serial.println("DATI INVIATI ");
-  Serial.print("Ack.ValOffset     ");
-  Serial.println(Ack.ValOffset);
-  Serial.print("Valore impostato Ack.offset_impostato    ");
-  Serial.println(Ack.offset_impostato);
-  Serial.println("");
-  Serial.println("");
+    lcd.setCursor(0, 0);
+    lcd.println("NO CONNECTION   ");
+    lcd.setCursor(0, 1);
+    lcd.println("Check Encoder   ");
+  }
 
-}
+  void testo_richiesta_inserimento_offset() {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.println("INSERIRE VALORE ");
+    lcd.setCursor(0, 1);
+    lcd.println("ANGOLO VOLANO   ");
+  }
 
-void display_no_conn() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.println("NO CONNECTION    ");
-  lcd.setCursor(0, 1);
-  lcd.println("Check Encoder   ");
-}
-
-void testo_richiesta_inserimento_offset() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.println("INSERIRE VALORE ");
-  lcd.setCursor(0, 1);
-  lcd.println("ANGOLO VOLANO   ");
-}
-
-void display_angolo() {
-  lcd.setCursor(0, 0);
-  lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
-  lcd.setCursor(0, 1);
-  lcd.print("                 ");
-  lcd.setCursor(4, 0);
-  lcd.print("Angolo:");
-  lcd.setCursor(1, 1);
-  lcd.print("angolocorretto");
-  //lcd.print(Data.valoreangolocorretto);
-  lcd.setCursor(10, 1);
-  lcd.print("Gradi");
-}
+  void display_angolo() {
+    lcd.setCursor(0, 0);
+    lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
+    lcd.setCursor(0, 1);
+    lcd.print("                 ");
+    lcd.setCursor(4, 0);
+    lcd.print("Angolo:");
+    lcd.setCursor(1, 1);
+    lcd.print(Data.valoreangolocorretto);
+    lcd.setCursor(10, 1);
+    lcd.print("Gradi");
+  }

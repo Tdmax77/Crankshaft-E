@@ -185,9 +185,6 @@ void loop()
           break;
 
         default:
-          radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));    // mando il valore di offset come ack !!!
-          delay (5);  //permette la spedizione del segnale garantendo il tempo di propagazione (in teoria da aliverti channel)
-          previousSuccessfulTransmission = millis();
           display_angolo();
       }
   }
@@ -249,11 +246,6 @@ void readButtonState() {
   }
 }
 
-
-
-
-
-
 void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come offset
 {
 #ifdef DEBUG
@@ -307,30 +299,6 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
   }
 }
 
-
-
-/*
-  void debug() {
-
-  Serial.println("Data successfully received");
-  Serial.println("DATI RICEVUTI");
-  Serial.print("Data.valoreangolocorretto    ");
-  Serial.println(Data.valoreangolocorretto);
-  Serial.print("Data.offsetRequest      ");
-  Serial.println(Data.offsetRequest);
-  Serial.println("");
-  Serial.println("");
-  Serial.println("DATI INVIATI ");
-  Serial.print("Ack.ValOffset     ");
-  Serial.println(Ack.ValOffset);
-  Serial.print("Valore impostato Ack.offset_impostato    ");
-  Serial.println(Ack.offset_impostato);
-  Serial.println("");
-  Serial.println("");
-  }
-*/
-
-
 void display_no_conn() {
 
   lcd.setCursor(0, 0);
@@ -348,14 +316,15 @@ void testo_richiesta_inserimento_offset() {
 }
 
 void display_angolo() {
+  // lcd.setCursor(0, 0);
+  // lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
   lcd.setCursor(0, 0);
-  lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
-  lcd.setCursor(0, 1);
-  lcd.print("                 ");
-  lcd.setCursor(4, 0);
-  lcd.print("Angolo:");
-  lcd.setCursor(1, 1);
-  lcd.print(Data.valoreangolocorretto);
+  lcd.print("    Angolo:     ");
   lcd.setCursor(10, 1);
   lcd.print("Gradi");
+  lcd.setCursor(0, 1);
+  lcd.print("          ");
+  lcd.setCursor(1, 1);
+  lcd.print(Data.valoreangolocorretto);
+  
 }

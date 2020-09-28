@@ -208,7 +208,7 @@ void loop()
           Serial.println (Data.offsetRequest);
           Serial.print ("prima dello switch off impost  ");
           Serial.println (Ack.offset_impostato);
-          if (Data.valoreangolocorretto != valoreangolocorrettoPrev){
+          if (Data.valoreangolocorretto != valoreangolocorrettoPrev){  //ridisegno il display unicamente se il dato dell'angolo cambia (evito flashamenti )
             valoreangolocorrettoPrev = Data.valoreangolocorretto;
             display_angolo();
           }

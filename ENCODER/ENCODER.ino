@@ -81,6 +81,7 @@ void setup() {
   /* Setup network */
   radio.begin();
   radio.setDataRate(RF24_250KBPS);
+  //radio.setDataRate(RF24_2MBPS);
   radio.setAutoAck(1);
   radio.enableAckPayload();               // Allow optional ack payloads
   // radio.setPALevel(RF24_PA_MAX);
@@ -111,14 +112,14 @@ void setup() {
   /* encoder*/
   Data.offsetRequest = true;
 
-  Serial.print("SETUP encoderValue    ");
-  Serial.println(encoderValue);
-  Serial.print("SETUP Ack.ValOffset      ");
-  Serial.println(Ack.ValOffset);
-  Serial.print("SETUP Data.offsetRequest      ");
-  Serial.println(Data.offsetRequest);
-  Serial.print("SETUP Ack.offset_impostato        ");
-  Serial.println(Ack.offset_impostato );
+  /* Serial.print("SETUP encoderValue    ");
+    Serial.println(encoderValue);
+    Serial.print("SETUP Ack.ValOffset      ");
+    Serial.println(Ack.ValOffset);
+    Serial.print("SETUP Data.offsetRequest      ");
+    Serial.println(Data.offsetRequest);
+    Serial.print("SETUP Ack.offset_impostato        ");
+    Serial.println(Ack.offset_impostato );              */
 }
 
 
@@ -131,10 +132,15 @@ void setup() {
 
 void loop() {
 
+
+  Serial.print ("prima dello switch off req  ");
+  Serial.println (Data.offsetRequest);
+  Serial.print ("prima dello switch off impost  ");
+  Serial.println (Ack.offset_impostato);
+  Serial.println ("  ");
+  Serial.println ("  ");
+
   Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ; //AngoloLetto;
-//float valoreangolocorretto_pre = Data.valoreangolocorretto;
-//if (valoreangolocorretto_pre != Data.valoreangolocorretto){
- 
   if (radio.write(&Data, sizeof(struct EncoderData)))                     // se radio attiva trasmetto
   {
     if (radio.isAckPayloadAvailable())                                    // leggo ack
@@ -144,24 +150,6 @@ void loop() {
       previousSuccessfulTransmission = millis();
     }
   }
-//  valoreangolocorretto_pre == Data.valoreangolocorretto;
-//}
-  /* ****************************************************** CONTROLLO RICEZIONE DATI ************************************/
-  if (millis() - previousSuccessfulTransmission > 500)                  //se maggiore di tot non ricevuto ack
-  {
-    transmissionState = false;
-#ifdef DEBUG
-    Serial.println("Data transmission error, check receiver!");
-#endif
-  }
-  else                                                                                // rivecuto
-  {
-    transmissionState = true;
-#ifdef DEBUG
-    Serial.println("Data successfully transmitted");
-#endif
-  }
-  /* ****************************************************** CONTROLLO RICEZIONE DATI ************************************/
 
   if (Ack.offset_impostato == true)   // se Display azzera il contatore dopo aver inserito l'offest, azzero anche il dato
   {
@@ -169,17 +157,6 @@ void loop() {
     radio.write(&Data, sizeof(struct EncoderData));
   }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -25,6 +25,7 @@
 #include <SPI.h>
 #include "printf.h"
 
+#include <math.h>
 #define DEBUG  //if not commented out, serial.print is active!
 
 /* encoder*/
@@ -132,30 +133,38 @@ void setup() {
 
 void loop() {
 #ifdef DEBUG
-if (Serial.available() > 0) {
-      char state = Serial.read();
-      if (state == 'A' || state == 'a') {
-        encoderValue ++;
-        Serial.print(" encoderValue");
-        Serial.println(encoderValue);
-      }
-      if (state == 'S' || state == 's') {
-        encoderValue --;
-           Serial.print(" encoderValue");
-        Serial.println(encoderValue);
-      }
-}
+  if (Serial.available() > 0) {
+    char state = Serial.read();
+    if (state == 'A' || state == 'a') {
+      encoderValue ++;
+      Serial.print(" encoderValue");
+      Serial.println(encoderValue);
+    }
+    if (state == 'S' || state == 's') {
+      encoderValue --;
+      Serial.print(" encoderValue");
+      Serial.println(encoderValue);
+    }
+  }
 
 #endif DEBUG
-  Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ;//AngoloLetto;
-  if (Data.valoreangolocorretto > 359.95) {
-    Data.valoreangolocorretto -= 359.95;
-    encoderValue = 0;
+
+  double auxval = (encoderValue * risoluzioneEncoder) + Ack.ValOffset;
+  double mod = fmod(auxval, 360.0);
+  if (mod < 0.0) {
+    mod += 360.0;
   }
-   if (Data.valoreangolocorretto < 0.00) {
-     Data.valoreangolocorretto += 359.95;
-     encoderValue = 7199;
+  Data.valoreangolocorretto = mod;
+
+  /*Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ;//AngoloLetto;
+    if (Data.valoreangolocorretto > 359.95) {
+     Data.valoreangolocorretto -= 359.95;
+     encoderValue = 0;
     }
+    if (Data.valoreangolocorretto < 0.00) {
+      Data.valoreangolocorretto += 359.95;
+      encoderValue = 7199;
+     }*/
   if (radio.write(&Data, sizeof(struct EncoderData)))                     // se radio attiva trasmetto
   {
     if (radio.isAckPayloadAvailable())                                    // leggo ack
@@ -179,54 +188,8 @@ if (Serial.available() > 0) {
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/***********************************************************************************************************/
-/***********************************************************************************************************/
+/********************************************************************************************************** /
+  /***********************************************************************************************************/
 /***********************************************************************************************************/
 /***********************************************************************************************************/
 /***********************************************************************************************************/

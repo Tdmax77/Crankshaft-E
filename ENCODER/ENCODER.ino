@@ -131,22 +131,36 @@ void setup() {
 
 
 void loop() {
+#ifdef DEBUG
+if (Serial.available() > 0) {
+      char state = Serial.read();
+      if (state == 'A' || state == 'a') {
+        encoderValue ++;
+        Serial.print(" encoderValue");
+        Serial.println(encoderValue);
+      }
+      if (state == 'S' || state == 's') {
+        encoderValue --;
+           Serial.print(" encoderValue");
+        Serial.println(encoderValue);
+      }
+}
 
-
-  Serial.print ("prima dello switch off req  ");
-  Serial.println (Data.offsetRequest);
-  Serial.print ("prima dello switch off impost  ");
-  Serial.println (Ack.offset_impostato);
-  Serial.println ("  ");
-  Serial.println ("  ");
-
-  Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ; //AngoloLetto;
+#endif DEBUG
+  Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ;//AngoloLetto;
+  if (Data.valoreangolocorretto > 359.95) {
+    Data.valoreangolocorretto -= 359.95;
+    encoderValue = 0;
+  }
+   if (Data.valoreangolocorretto < 0.00) {
+     Data.valoreangolocorretto += 359.95;
+     encoderValue = 7199;
+    }
   if (radio.write(&Data, sizeof(struct EncoderData)))                     // se radio attiva trasmetto
   {
     if (radio.isAckPayloadAvailable())                                    // leggo ack
     {
       radio.read(&Ack, sizeof(struct AckPayload));
-      Serial.println ("leggo dati ack");
       previousSuccessfulTransmission = millis();
     }
   }
@@ -156,6 +170,13 @@ void loop() {
     Data.offsetRequest = false;
     radio.write(&Data, sizeof(struct EncoderData));
   }
+#ifdef DEBUG
+  Serial.print ("angolo:");
+  Serial.print (Data.valoreangolocorretto);
+  Serial.print ("    encoderValue");
+  Serial.println (encoderValue);
+#endif
+
 }
 
 

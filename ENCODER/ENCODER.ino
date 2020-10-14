@@ -1,10 +1,4 @@
-/*20200924 8:57
-   20200922 5:26
-   20200921 spostato calcolo offset su encoder ma ci sono provlemi:
-     il valore di offset viene risommato la prima volta che spengo e riaccendo il display
-     offset viene chiesto 3 volte.
-
-
+/*
   Encoder: domanda un offset alla prima accensione
   lo riceve nell ack e lo somma al valore letto dall'encoder
   poi lo rispedisce al display per farlo visualizzare
@@ -24,7 +18,6 @@
 #include <nRF24L01.h>
 #include <SPI.h>
 #include "printf.h"
-
 #include <math.h>
 #define DEBUG  //if not commented out, serial.print is active!
 
@@ -56,6 +49,7 @@ static unsigned long previousSuccessfulTransmission;
 struct EncoderData {
   bool offsetRequest = true; //se prima accensione richiederà l'offset
   float valoreangolocorretto;
+  bool cw = true;
 };
 EncoderData Data;
 
@@ -63,9 +57,10 @@ EncoderData Data;
 struct AckPayload {
   int ValOffset;
   bool offset_impostato = false; // se display rileva chisura encoder ridomanda offset
+  bool cwi = true;
 };
 AckPayload Ack;
-
+byte cw = 1;
 
 
 bool IMPOSTATO_DA_DISPLAY = false;
@@ -174,6 +169,11 @@ void loop() {
     }
   }
 
+  if (Ack.cwi == false) {
+    Data.cw = false;
+    cw = 0;
+  }
+
   if (Ack.offset_impostato == true)   // se Display azzera il contatore dopo aver inserito l'offest, azzero anche il dato
   {
     Data.offsetRequest = false;
@@ -184,6 +184,10 @@ void loop() {
   Serial.print (Data.valoreangolocorretto);
   Serial.print ("    encoderValue");
   Serial.println (encoderValue);
+  Serial.print ("Data.CW ");
+  Serial.println (Data.cw);
+  Serial.print ("Ack.CW ");
+  Serial.println (Ack.cwi);
 #endif
 
 }
@@ -203,9 +207,14 @@ void updateEncoder() {
   int encoded = (MSB << 1) | LSB; //converting the 2 pin value to single number
   int sum  = (lastEncoded << 2) | encoded; //adding it to the previous encoded value
 
-  if (sum == 0b1101 /*|| sum == 0b0100 || sum == 0b0010 || sum == 0b1011*/) encoderValue ++; // modificato per non lavorare in quadratura
-  if (sum == 0b1110 /*|| sum == 0b0111 || sum == 0b0001 || sum == 0b1000*/) encoderValue --; // modificato per non lavorare in quadratura
-
+  if (cw == 1) {
+    if (sum == 0b1101 /*|| sum == 0b0100 || sum == 0b0010 || sum == 0b1011*/) encoderValue ++; // modificato per non lavorare in quadratura
+    if (sum == 0b1110 /*|| sum == 0b0111 || sum == 0b0001 || sum == 0b1000*/) encoderValue --; // modificato per non lavorare in quadratura
+  }
+  else {
+    if (sum == 0b1101 /*|| sum == 0b0100 || sum == 0b0010 || sum == 0b1011*/) encoderValue --; // modificato per non lavorare in quadratura
+    if (sum == 0b1110 /*|| sum == 0b0111 || sum == 0b0001 || sum == 0b1000*/) encoderValue ++; // modificato per non lavorare in quadratura
+  }
   lastEncoded = encoded; //store this value for next time
 }
 

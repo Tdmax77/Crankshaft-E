@@ -60,6 +60,7 @@ float Angolo;
 struct EncoderData {
   bool offsetRequest = true; //se prima accensione richiederà l'offset
   float valoreangolocorretto; // valore che verrà visualizzato ovvero la somma del valore dell'encoder + l'offset che ho inserito
+  bool cw = true; //se prima accensione richiederà se il motore è CW o CCW
 };
 EncoderData Data;
 
@@ -67,6 +68,7 @@ EncoderData Data;
 struct AckPayload {
   int ValOffset = 0; //valore letto sul volano e impostato dal display
   bool offset_impostato = false; // se display rileva chisura encoder ridomanda offset
+  bool cwi = true;
 };
 AckPayload Ack;
 
@@ -169,7 +171,7 @@ void setup() {
 void loop()
 {
 
- switch (radio.available()) {  // verifico se ho l'encoder acceso
+  switch (radio.available()) {  // verifico se ho l'encoder acceso
     case  false:   // se non ho segnale scrivo sul display No connection (funziona bene)
       display_no_conn();
       delay(2000);
@@ -178,8 +180,10 @@ void loop()
 
     default:
       if (mostraangolo == 1) {
+        //quando riprendo il segnale visualizzo l'ultimo dato dell'angolo (non si aggiorna se non cambia altrimenti)
         lcd.setCursor(0, 0);
-        lcd.print("    Angolo:     ");
+        if (Data.cw) lcd.print("CW     Angolo:  ");
+        else lcd.print   ("CCW    Angolo:  ");
         lcd.setCursor(10, 1);
         lcd.print("Gradi");
         lcd.setCursor(0, 1);
@@ -187,12 +191,14 @@ void loop()
         lcd.setCursor(1, 1);
         lcd.print(Data.valoreangolocorretto);
         mostraangolo = 0;
+
       }
 
       radio.read(&Data, sizeof(struct EncoderData));  //leggo i dati
       int richiestaoffset = Data.offsetRequest;   //lo switch non va con boolean devo quindi convertire in int
       int offsetimpostatovariabile = 0;           // seconda condizione necessaria per non richiedere doppio ok alla procedura di offset ... (mistero)
-
+      Serial.print ("prima dello switch CW ");
+      Serial.println (Data.cw);
       Serial.print ("prima dello switch off req  ");
       Serial.println (Data.offsetRequest);
       Serial.print ("prima dello switch off impost  ");
@@ -205,10 +211,18 @@ void loop()
       Serial.println ("  ");
 
 
+
+
       switch (richiestaoffset && !offsetimpostatovariabile) {                      // se è richiesto l'offset (prima accensione di encoder) eseguo procedura
         case true:
+          testo_richiesta_inserimento_cw();
+          while (digitalRead(buttonOkPin) == LOW )
+          {
+            PROCEDURA_CW();
+          }
           testo_richiesta_inserimento_offset();
           offsetimpostatovariabile = 1;
+
           while (digitalRead(buttonOkPin) == LOW )
           {
             PROCEDURA_OFFSET();
@@ -220,6 +234,7 @@ void loop()
           }
           Ack.offset_impostato = true;
           Ack.ValOffset = var;
+          //Ack.cwi = Data.cw;
           radio.writeAckPayload(1, &Ack, sizeof(struct AckPayload));
           radio.read(&Data, sizeof(struct EncoderData));
           delay(5);
@@ -253,26 +268,26 @@ void loop()
 /*****************************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************************/
 
- //messaggistica di controllo ************************************************************
-  void check_Transmission() {
+//messaggistica di controllo ************************************************************
+void check_Transmission() {
 
   if (millis() - previousSuccessfulTransmission > 500)                   // se non ricevo niente entro tot millisecondi
   {
-  transmissionState = false;
-  #ifdef DEBUG
-  Serial.println("Data transmission error, check Transmitter!");
-  #endif
-  do {
-    display_no_conn();
-  } while (transmissionState = false) ;
+    transmissionState = false;
+#ifdef DEBUG
+    Serial.println("Data transmission error, check Transmitter!");
+#endif
+    do {
+      display_no_conn();
+    } while (transmissionState = false) ;
   }
-/*  else
-  {
-  transmissionState = true;   // se ricevo conrrettamente il segnale
-  // display_angolo();
-  }*/
-  }
-  /* messaggistica di controllo ************************************************************/
+  /*  else
+    {
+    transmissionState = true;   // se ricevo conrrettamente il segnale
+    // display_angolo();
+    }*/
+}
+/* messaggistica di controllo ************************************************************/
 
 
 
@@ -358,6 +373,38 @@ void PROCEDURA_OFFSET() // mi restituisce un valore var che ho inserito come off
 
 }
 
+void PROCEDURA_CW() {//
+#ifdef DEBUG
+  Serial.println("");
+  Serial.println("SONO NELLA PROCEDURA CW()");
+  Serial.println("");
+#endif
+  readButtonState();  //Lettura stato buttons con controllo antirimbalzo
+
+  if (buttonUpState == HIGH) {
+    Ack.cwi = true;
+    lcd.setCursor(0, 0);
+    lcd.print("Motore impostato");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
+    lcd.setCursor(0, 1);
+    lcd.print("   Orario       ");
+    delay(200);
+  }
+  if (buttonDownState == HIGH) {
+    Ack.cwi = false;
+    lcd.setCursor(0, 0);
+    lcd.print("Motore impostato");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
+    lcd.setCursor(0, 1);
+    lcd.print("   Antiorario   ");
+    delay(200);
+  }
+  Serial.print ("prima dello switch Data.CW ");
+  Serial.println (Data.cw);
+  Serial.print ("prima dello switch Ack.cwi ");
+  Serial.println (Ack.cwi);
+}
+
+
+
 void display_no_conn() {
 
   lcd.setCursor(0, 0);
@@ -369,19 +416,35 @@ void display_no_conn() {
 void testo_richiesta_inserimento_offset() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.println("INSERIRE VALORE ");
+  lcd.println("INSERIRE ANGOLO ");
   lcd.setCursor(0, 1);
-  lcd.println("ANGOLO VOLANO   ");
+  lcd.println("LETTO SUL VOLANO");
 }
+
+void testo_richiesta_inserimento_cw() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.println(" INSERIRE SENSO ");
+  lcd.setCursor(0, 1);
+  lcd.println(" DI ROTAZIONE   ");
+}
+
 
 void display_angolo() {
   if (Data.valoreangolocorretto != valoreangolocorrettoPrev)//ridisegno il display unicamente se il dato dell'angolo cambia (evito flashamenti )
   {
     valoreangolocorrettoPrev = Data.valoreangolocorretto;
     lcd.setCursor(0, 0);
-    lcd.print("    Angolo:     ");
+    if (Data.cw) {
+      lcd.print ("CW     Angolo:  ");
+    }
+
+    else {
+      lcd.print   ("CCW    Angolo:  ");
+    }
+
     lcd.setCursor(10, 1);
-    lcd.print("Gradi");
+    lcd.print("Gradi ");
     lcd.setCursor(0, 1);
     lcd.print("          ");
     lcd.setCursor(1, 1);

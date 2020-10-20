@@ -108,8 +108,6 @@ int pulsante_1 = 0; // non utilizzato
 /*Variabili Pulsanti */
 
 
-int mostraangolo = 0; // serve a riscrivere l'angolo sul display dopo che ha ripreso la connessione (visto che display_angolo refresha solo se angolo cambia)
-
 
 /**********************************************************************************************************/
 /***********************   SETUP   ************************************************************************/
@@ -120,7 +118,6 @@ void setup() {
   /* Setup network */
   radio.begin();
   radio.setDataRate(RF24_250KBPS);
-  //radio.setDataRate(RF24_2MBPS);
   radio.setAutoAck(1);
   radio.enableAckPayload();               // Allow optional ack payloads
   //radio.setPALevel(RF24_PA_MAX);
@@ -143,7 +140,7 @@ void setup() {
 
   /* Debug*/
 #ifdef DEBUG
-  Serial.begin(115200);
+  Serial.begin(9600);
   printf_begin();
   radio.printDetails();
 #endif
@@ -170,15 +167,17 @@ void setup() {
 
 void loop()
 {
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of 3095eb3... FUNZIONA TUTTO
   switch (radio.available()) {  // verifico se ho l'encoder acceso
     case  false:   // se non ho segnale scrivo sul display No connection (funziona bene)
       display_no_conn();
-      delay(2000);
-      mostraangolo = 1;
       break;
 
     default:
+<<<<<<< HEAD
       if (mostraangolo == 1) {
         //quando riprendo il segnale visualizzo l'ultimo dato dell'angolo (non si aggiorna se non cambia altrimenti)
         lcd.setCursor(0, 0);
@@ -199,10 +198,16 @@ void loop()
       int offsetimpostatovariabile = 0;           // seconda condizione necessaria per non richiedere doppio ok alla procedura di offset ... (mistero)
       Serial.print ("prima dello switch CW ");
       Serial.println (Data.cw);
+=======
+      radio.read(&Data, sizeof(struct EncoderData));  //leggo i dati
+      int richiestaoffset = Data.offsetRequest;
+
+>>>>>>> parent of 3095eb3... FUNZIONA TUTTO
       Serial.print ("prima dello switch off req  ");
       Serial.println (Data.offsetRequest);
       Serial.print ("prima dello switch off impost  ");
       Serial.println (Ack.offset_impostato);
+<<<<<<< HEAD
       Serial.print ("variabile intera richiestaoffset   ");
       Serial.println(richiestaoffset);
       Serial.print ("variabile intera offsetimpostatovariabile   ");
@@ -214,6 +219,9 @@ void loop()
 
 
       switch (richiestaoffset && !offsetimpostatovariabile) {                      // se è richiesto l'offset (prima accensione di encoder) eseguo procedura
+=======
+      switch (richiestaoffset) {                      // se è richiesto l'offset (prima accensione di encoder) eseguo procedura
+>>>>>>> parent of 3095eb3... FUNZIONA TUTTO
         case true:
           testo_richiesta_inserimento_cw();
           while (digitalRead(buttonOkPin) == LOW )
@@ -221,16 +229,19 @@ void loop()
             PROCEDURA_CW();
           }
           testo_richiesta_inserimento_offset();
+<<<<<<< HEAD
           offsetimpostatovariabile = 1;
 
+=======
+>>>>>>> parent of 3095eb3... FUNZIONA TUTTO
           while (digitalRead(buttonOkPin) == LOW )
           {
             PROCEDURA_OFFSET();
-            /*        Serial.println ("sono nel while dopo la procedura  ");
-                    Serial.print ("prima dello switch off req  ");
-                    Serial.println (Data.offsetRequest);
-                    Serial.print ("prima dello switch off impost  ");
-                    Serial.println (Ack.offset_impostato);*/
+            Serial.println ("sono nel while dopo la procedura  ");
+            Serial.print ("prima dello switch off req  ");
+            Serial.println (Data.offsetRequest);
+            Serial.print ("prima dello switch off impost  ");
+            Serial.println (Ack.offset_impostato);
           }
           Ack.offset_impostato = true;
           Ack.ValOffset = var;
@@ -239,24 +250,23 @@ void loop()
           radio.read(&Data, sizeof(struct EncoderData));
           delay(5);
           break;
-        /*  Serial.print ("sono dopo il break  ");
+          Serial.print ("sono dopo il break  ");
           Serial.print ("prima dello switch off req  ");
           Serial.println (Data.offsetRequest);
           Serial.print ("prima dello switch off impost  ");
-          Serial.println (Ack.offset_impostato);*/
+          Serial.println (Ack.offset_impostato);
 
         default:
-          /*   Serial.print ("sononel default ");
-               Serial.print ("prima dello switch off req  ");
-               Serial.println (Data.offsetRequest);
-               Serial.print ("prima dello switch off impost  ");
-               Serial.println (Ack.offset_impostato);*/
-          /* if (Data.valoreangolocorretto != valoreangolocorrettoPrev) { //ridisegno il display unicamente se il dato dell'angolo cambia (evito flashamenti )
-             valoreangolocorrettoPrev = Data.valoreangolocorretto;
-             display_angolo();
-            }*/
-          display_angolo();
-
+        Serial.print ("sononel default ");
+          Serial.print ("prima dello switch off req  ");
+          Serial.println (Data.offsetRequest);
+          Serial.print ("prima dello switch off impost  ");
+          Serial.println (Ack.offset_impostato);
+          if (Data.valoreangolocorretto != valoreangolocorrettoPrev){  //ridisegno il display unicamente se il dato dell'angolo cambia (evito flashamenti )
+            valoreangolocorrettoPrev = Data.valoreangolocorretto;
+            display_angolo();
+          }
+          
           break;
       }
   }
@@ -268,6 +278,7 @@ void loop()
 /*****************************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************************/
 
+<<<<<<< HEAD
 //messaggistica di controllo ************************************************************
 void check_Transmission() {
 
@@ -280,6 +291,26 @@ void check_Transmission() {
     do {
       display_no_conn();
     } while (transmissionState = false) ;
+=======
+/* messaggistica di controllo ************************************************************
+  void check_Transmission() {
+
+  if (millis() - previousSuccessfulTransmission > 500)                   // se non ricevo niente entro tot millisecondi
+  {
+  transmissionState = false;
+  #ifdef DEBUG
+  Serial.println("Data transmission error, check Transmitter!");
+  #endif
+  do {
+    display_no_conn();
+  } while (transmissionState = false) ;
+  }
+  else
+  {
+  transmissionState = true;   // se ricevo conrrettamente il segnale
+  // display_angolo();
+  }
+>>>>>>> parent of 3095eb3... FUNZIONA TUTTO
   }
   /*  else
     {
@@ -431,6 +462,7 @@ void testo_richiesta_inserimento_cw() {
 
 
 void display_angolo() {
+<<<<<<< HEAD
   if (Data.valoreangolocorretto != valoreangolocorrettoPrev)//ridisegno il display unicamente se il dato dell'angolo cambia (evito flashamenti )
   {
     valoreangolocorrettoPrev = Data.valoreangolocorretto;
@@ -450,5 +482,17 @@ void display_angolo() {
     lcd.setCursor(1, 1);
     lcd.print(Data.valoreangolocorretto);
   }
+=======
+  // lcd.setCursor(0, 0);
+  // lcd.print("                 ");    //disegnare caratteri vuoti dovrebbe essere piu veloce del clear
+  lcd.setCursor(0, 0);
+  lcd.print("    Angolo:     ");
+  lcd.setCursor(10, 1);
+  lcd.print("Gradi");
+  lcd.setCursor(0, 1);
+  lcd.print("          ");
+  lcd.setCursor(1, 1);
+  lcd.print(Data.valoreangolocorretto);
+>>>>>>> parent of 3095eb3... FUNZIONA TUTTO
 
 }

@@ -1,4 +1,7 @@
-/*
+/*   20200922 5:26
+   20200921 spostato calcolo offset su encoder ma ci sono provlemi:
+     il valore di offset viene risommato la prima volta che spengo e riaccendo il display
+     offset viene chiesto 3 volte.
   Encoder: domanda un offset alla prima accensione
   lo riceve nell ack e lo somma al valore letto dall'encoder
   poi lo rispedisce al display per farlo visualizzare
@@ -12,12 +15,12 @@
   pulsante 2 5
   pulsante 3 6
   pulsante 4 7
-
 */
 #include <RF24.h>
 #include <nRF24L01.h>
 #include <SPI.h>
 #include "printf.h"
+
 #include <math.h>
 #define DEBUG  //if not commented out, serial.print is active!
 
@@ -49,7 +52,6 @@ static unsigned long previousSuccessfulTransmission;
 struct EncoderData {
   bool offsetRequest = true; //se prima accensione richiederà l'offset
   float valoreangolocorretto;
-  bool cw = true;
 };
 EncoderData Data;
 
@@ -57,10 +59,9 @@ EncoderData Data;
 struct AckPayload {
   int ValOffset;
   bool offset_impostato = false; // se display rileva chisura encoder ridomanda offset
-  bool cwi = true;
 };
 AckPayload Ack;
-byte cw = 1;
+
 
 
 bool IMPOSTATO_DA_DISPLAY = false;
@@ -77,6 +78,7 @@ void setup() {
   /* Setup network */
   radio.begin();
   radio.setDataRate(RF24_250KBPS);
+  //radio.setDataRate(RF24_2MBPS);
   radio.setAutoAck(1);
   radio.enableAckPayload();               // Allow optional ack payloads
   // radio.setPALevel(RF24_PA_MAX);
@@ -107,14 +109,14 @@ void setup() {
   /* encoder*/
   Data.offsetRequest = true;
 
-  Serial.print("SETUP encoderValue    ");
-  Serial.println(encoderValue);
-  Serial.print("SETUP Ack.ValOffset      ");
-  Serial.println(Ack.ValOffset);
-  Serial.print("SETUP Data.offsetRequest      ");
-  Serial.println(Data.offsetRequest);
-  Serial.print("SETUP Ack.offset_impostato        ");
-  Serial.println(Ack.offset_impostato );
+  /* Serial.print("SETUP encoderValue    ");
+    Serial.println(encoderValue);
+    Serial.print("SETUP Ack.ValOffset      ");
+    Serial.println(Ack.ValOffset);
+    Serial.print("SETUP Data.offsetRequest      ");
+    Serial.println(Data.offsetRequest);
+    Serial.print("SETUP Ack.offset_impostato        ");
+    Serial.println(Ack.offset_impostato );              */
 }
 
 
@@ -141,7 +143,6 @@ void loop() {
     }
   }
 
-<<<<<<< HEAD
 #endif DEBUG
 
   double auxval = (encoderValue * risoluzioneEncoder) + Ack.ValOffset;
@@ -160,12 +161,6 @@ void loop() {
       Data.valoreangolocorretto += 359.95;
       encoderValue = 7199;
      }*/
-=======
-  Data.valoreangolocorretto = (encoderValue * risoluzioneEncoder) + Ack.ValOffset ; //AngoloLetto;
-//float valoreangolocorretto_pre = Data.valoreangolocorretto;
-//if (valoreangolocorretto_pre != Data.valoreangolocorretto){
- 
->>>>>>> parent of 3095eb3... FUNZIONA TUTTO
   if (radio.write(&Data, sizeof(struct EncoderData)))                     // se radio attiva trasmetto
   {
     if (radio.isAckPayloadAvailable())                                    // leggo ack
@@ -173,29 +168,6 @@ void loop() {
       radio.read(&Ack, sizeof(struct AckPayload));
       previousSuccessfulTransmission = millis();
     }
-  }
-//  valoreangolocorretto_pre == Data.valoreangolocorretto;
-//}
-  /* ****************************************************** CONTROLLO RICEZIONE DATI ************************************/
-  if (millis() - previousSuccessfulTransmission > 500)                  //se maggiore di tot non ricevuto ack
-  {
-    transmissionState = false;
-#ifdef DEBUG
-    Serial.println("Data transmission error, check receiver!");
-#endif
-  }
-  else                                                                                // rivecuto
-  {
-    transmissionState = true;
-#ifdef DEBUG
-    Serial.println("Data successfully transmitted");
-#endif
-  }
-  /* ****************************************************** CONTROLLO RICEZIONE DATI ************************************/
-
-  if (Ack.cwi == false) {
-    Data.cw = false;
-    cw = 0;
   }
 
   if (Ack.offset_impostato == true)   // se Display azzera il contatore dopo aver inserito l'offest, azzero anche il dato
@@ -208,32 +180,12 @@ void loop() {
   Serial.print (Data.valoreangolocorretto);
   Serial.print ("    encoderValue");
   Serial.println (encoderValue);
-  Serial.print ("Data.CW ");
-  Serial.println (Data.cw);
-  Serial.print ("Ack.CW ");
-  Serial.println (Ack.cwi);
 #endif
 
 }
 
-<<<<<<< HEAD
 /********************************************************************************************************** /
   /***********************************************************************************************************/
-=======
-
-
-
-
-
-
-
-
-
-
-
-/***********************************************************************************************************/
-/***********************************************************************************************************/
->>>>>>> parent of 3095eb3... FUNZIONA TUTTO
 /***********************************************************************************************************/
 /***********************************************************************************************************/
 /***********************************************************************************************************/
@@ -247,14 +199,9 @@ void updateEncoder() {
   int encoded = (MSB << 1) | LSB; //converting the 2 pin value to single number
   int sum  = (lastEncoded << 2) | encoded; //adding it to the previous encoded value
 
-  if (cw == 1) {
-    if (sum == 0b1101 /*|| sum == 0b0100 || sum == 0b0010 || sum == 0b1011*/) encoderValue ++; // modificato per non lavorare in quadratura
-    if (sum == 0b1110 /*|| sum == 0b0111 || sum == 0b0001 || sum == 0b1000*/) encoderValue --; // modificato per non lavorare in quadratura
-  }
-  else {
-    if (sum == 0b1101 /*|| sum == 0b0100 || sum == 0b0010 || sum == 0b1011*/) encoderValue --; // modificato per non lavorare in quadratura
-    if (sum == 0b1110 /*|| sum == 0b0111 || sum == 0b0001 || sum == 0b1000*/) encoderValue ++; // modificato per non lavorare in quadratura
-  }
+  if (sum == 0b1101 /*|| sum == 0b0100 || sum == 0b0010 || sum == 0b1011*/) encoderValue ++; // modificato per non lavorare in quadratura
+  if (sum == 0b1110 /*|| sum == 0b0111 || sum == 0b0001 || sum == 0b1000*/) encoderValue --; // modificato per non lavorare in quadratura
+
   lastEncoded = encoded; //store this value for next time
 }
 

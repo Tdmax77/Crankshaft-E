@@ -27,9 +27,10 @@
 /* encoder*/
 #define encoderPin1  3
 #define encoderPin2  2
-#define risoluzioneEncoder  0.05 /* INSERIRE QUI VALORE ENCODER uguale anche nel programma COTO 360/7200=0.05, se usiamo in quadratura va 360/28800
-  http://www.sciamannalucio.it/arduino-encoder-conta-impulsi-giri-motore/
-   tecnicamente adesso la risoluzione si ottiene con 360/7200 perchè (vedi sezione encoder) usiamo un solo fronte per il conteggio e non 4 */
+#define risoluzioneEncoder  0.0125
+//#define risoluzioneEncoder  0.05 /* INSERIRE QUI VALORE ENCODER uguale anche nel programma COTO 360/7200=0.05, se usiamo in quadratura va 360/28800
+// http://www.sciamannalucio.it/arduino-encoder-conta-impulsi-giri-motore/
+//   tecnicamente adesso la risoluzione si ottiene con 360/7200 perchè (vedi sezione encoder) usiamo un solo fronte per il conteggio e non 4 */
 volatile int lastEncoded = 0;
 volatile long encoderValue = 0;
 float Angolo = 0;
@@ -81,8 +82,8 @@ void setup() {
   //radio.setDataRate(RF24_2MBPS);
   radio.setAutoAck(1);
   radio.enableAckPayload();               // Allow optional ack payloads
-  // radio.setPALevel(RF24_PA_MAX);
-  radio.setPALevel(RF24_PA_MIN);
+  radio.setPALevel(RF24_PA_MAX);
+ // radio.setPALevel(RF24_PA_MIN);
   radio.enableDynamicPayloads();
   radio.openWritingPipe(add1);       // Both radios listen on the same pipes by default, and switch when writing
   /* Setup network */
@@ -199,8 +200,8 @@ void updateEncoder() {
   int encoded = (MSB << 1) | LSB; //converting the 2 pin value to single number
   int sum  = (lastEncoded << 2) | encoded; //adding it to the previous encoded value
 
-  if (sum == 0b1101 /*|| sum == 0b0100 || sum == 0b0010 || sum == 0b1011*/) encoderValue ++; // modificato per non lavorare in quadratura
-  if (sum == 0b1110 /*|| sum == 0b0111 || sum == 0b0001 || sum == 0b1000*/) encoderValue --; // modificato per non lavorare in quadratura
+  if (sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoderValue ++; // modificato per non lavorare in quadratura
+  if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderValue --; // modificato per non lavorare in quadratura
 
   lastEncoded = encoded; //store this value for next time
 }

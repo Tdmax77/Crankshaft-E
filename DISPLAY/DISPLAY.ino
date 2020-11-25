@@ -115,8 +115,8 @@ void setup() {
   //radio.setDataRate(RF24_2MBPS);
   radio.setAutoAck(1);
   radio.enableAckPayload();               // Allow optional ack payloads
-  //radio.setPALevel(RF24_PA_MAX);
-  radio.setPALevel(RF24_PA_MIN);
+  radio.setPALevel(RF24_PA_MAX);
+  //radio.setPALevel(RF24_PA_MIN);
   radio.enableDynamicPayloads();
   radio.openReadingPipe(1, add1);
   radio.startListening();                 // Start listening
